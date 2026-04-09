@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
-import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag } from 'lucide-react';
+import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag, Eye, EyeOff } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -387,6 +387,8 @@ function LoginPage({ login, signup }) {
   const [isLogin, setIsLogin] = useState(true);
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const handleTestLogin = async (e) => {
@@ -418,10 +420,15 @@ function LoginPage({ login, signup }) {
         await login(loginId, password);
         navigate('/');
       } else {
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
         await signup(loginId, password);
         alert('회원가입이 완료되었습니다! 이제 로그인해주세요.');
         setIsLogin(true);
         setPassword('');
+        setConfirmPassword('');
       }
     } catch (err) {
       setError(err.message);
@@ -442,13 +449,46 @@ function LoginPage({ login, signup }) {
             </div>
             <div className="form-group">
               <label className="form-label">Password</label>
-              <input type="password" className="form-input" value={password} onChange={e => setPassword(e.target.value)} required />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  className="form-input" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  required 
+                />
+                <div 
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </div>
+              </div>
             </div>
+
+            {!isLogin && (
+              <div className="form-group slide-in">
+                <label className="form-label">Confirm Password</label>
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  className="form-input" 
+                  value={confirmPassword} 
+                  onChange={e => setConfirmPassword(e.target.value)} 
+                  required 
+                />
+              </div>
+            )}
+
             <button type="submit" className="btn-primary" style={{ marginBottom: '1rem' }}>{isLogin ? "Login" : "Sign Up"}</button>
             <button type="button" onClick={handleTestLogin} className="btn-primary" style={{ marginBottom: '1.5rem', background: '#3182CE', boxShadow: 'none' }}>Quick Test Login</button>
+            
             <div style={{ textAlign: 'center', fontSize: '0.9rem' }}>
               {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <span onClick={() => setIsLogin(!isLogin)} style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 'bold' }}>
+              <span onClick={() => {
+                setIsLogin(!isLogin);
+                setError('');
+                setConfirmPassword('');
+              }} style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 'bold' }}>
                 {isLogin ? "Sign up here" : "Login here"}
               </span>
             </div>

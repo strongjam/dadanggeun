@@ -425,7 +425,7 @@ function LoginPage({ login, signup }) {
           return;
         }
         await signup(loginId, password);
-        alert('회원가입이 완료되었습니다! 이제 로그인해주세요.');
+        alert('Sign up complete! Please login.');
         setIsLogin(true);
         setPassword('');
         setConfirmPassword('');
@@ -1007,10 +1007,10 @@ function ChatListPage({ rooms, user }) {
             <div className="empty-state-icon">
               <MessageCircle size={40} />
             </div>
-            <h2 className="empty-state-title">채팅방이 없습니다</h2>
-            <p className="empty-state-desc">새로운 이웃과 따뜻한 거래를 시작해보세요.</p>
+            <h2 className="empty-state-title">No chat rooms yet</h2>
+            <p className="empty-state-desc">Start a conversation with your neighbors.</p>
             <button className="empty-state-btn" onClick={() => navigate('/')}>
-              상품 둘러보기
+              Browse items
             </button>
           </div>
         ) : (
@@ -1024,7 +1024,7 @@ function ChatListPage({ rooms, user }) {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {r.last_message_time ? (() => {
                         const d = new Date(r.last_message_time.endsWith('Z') ? r.last_message_time : r.last_message_time + 'Z');
-                        return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                        return isNaN(d.getTime()) ? '' : d.toLocaleDateString().replace(/\.$/, '');
                       })() : ''}
                     </span>
                   </div>
@@ -1098,7 +1098,7 @@ function ChatRoomPage({ messages, joinRoom, sendMessage, user }) {
 
       <div style={{ padding: '0.6rem 0.8rem', background: 'white' }}>
         <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <input type="text" className="form-input" style={{ flex: 1, borderRadius: '24px', padding: '0.7rem 1rem', background: '#F0F0F0', border: 'none', fontSize: '0.95rem' }} placeholder="메시지를 입력하세요..." value={text} onChange={e => setText(e.target.value)} />
+          <input type="text" className="form-input" style={{ flex: 1, borderRadius: '24px', padding: '0.7rem 1rem', background: '#F0F0F0', border: 'none', fontSize: '0.95rem' }} placeholder="Type a message..." value={text} onChange={e => setText(e.target.value)} />
           <button type="submit" style={{ width: '40px', height: '40px', borderRadius: '50%', background: text.trim() ? '#FEE500' : '#E0E0E0', color: text.trim() ? '#1A1A1A' : '#A0A0A0', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: text.trim() ? 'pointer' : 'default', transition: 'background 0.2s' }} disabled={!text.trim()}><Send size={18} /></button>
         </form>
       </div>

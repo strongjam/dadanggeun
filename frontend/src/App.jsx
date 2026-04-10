@@ -647,7 +647,7 @@ function HomePage({ products, user }) {
                   <div className="product-desc">{p.description}</div>
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto' }}>
                     <div className="product-price">
-                      {p.is_free === 1 ? <span className="badge-free">나눔</span> : `$${Number(p.price).toFixed(2)}`}
+                      {p.is_free === 1 ? <span className="badge-free">Free</span> : `$${Number(p.price).toFixed(2)}`}
                     </div>
                   </div>
                 </div>
@@ -756,7 +756,7 @@ function ProductDetailPage({ products, deleteProduct, user, createRoom, myProduc
       </div>
       <div style={{ position: 'fixed', bottom: 0, width: '100%', maxWidth: '600px', background: 'white', padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50 }}>
         <div style={{ fontSize: '1.4rem', fontWeight: '800', color: product.is_free === 1 ? '#48BB78' : 'var(--primary)' }}>
-          {product.is_free === 1 ? '나눔 🎁' : `$${Number(product.price).toFixed(2)}`}
+          {product.is_free === 1 ? 'Free 🎁' : `$${Number(product.price).toFixed(2)}`}
         </div>
         {user && String(user.id) === String(product.seller_id) ? (
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -848,7 +848,7 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
 
   return (
     <>
-      <Header title={existingProduct ? "Edit Listing" : "Sell an Item"} showBack={true} />
+      <Header title={existingProduct ? "Edit" : ""} showBack={true} />
       <main>
         <div className="glass-card">
           <form onSubmit={handleSubmit}>
@@ -868,8 +868,8 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
               </div>
             </div>
             <div className="sale-type-toggle">
-              <button type="button" className={`sale-type-btn ${!isFree ? 'active' : ''}`} onClick={() => setIsFree(false)}>판매하기</button>
-              <button type="button" className={`sale-type-btn ${isFree ? 'active' : ''}`} onClick={() => { setIsFree(true); setPrice('0'); setIsQuick(false); }}>나눔하기</button>
+              <button type="button" className={`sale-type-btn ${!isFree ? 'active' : ''}`} onClick={() => setIsFree(false)}>For Sale</button>
+              <button type="button" className={`sale-type-btn ${isFree ? 'active' : ''}`} onClick={() => { setIsFree(true); setPrice('0'); setIsQuick(false); }}>Giveaway</button>
             </div>
 
             <div className="form-group"><label className="form-label">Title</label><input type="text" className="form-input" value={title} onChange={e => setTitle(e.target.value)} required /></div>
@@ -880,7 +880,7 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
 
             {isFree && (
               <div style={{ background: '#F0FFF4', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', color: '#2F855A', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.2rem' }}>🎁</span> 이 상품은 이웃에게 무료로 나눔됩니다.
+                <span style={{ fontSize: '1.2rem' }}>🎁</span> This item will be shared with the community for free.
               </div>
             )}
             
@@ -907,7 +907,7 @@ function CommunityPage({ posts }) {
 
   return (
     <>
-      <Header rightContent={<Link to="/community/new" style={{ background: 'var(--primary)', color: 'white', padding: '6px 14px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}><Edit2 size={16} /> Write</Link>} />
+      <Header title="Community" />
       <main>
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
           {['All', 'Free Talk', 'Q&A'].map(cat => <div key={cat} onClick={() => setFilter(cat)} className={`category-pill ${filter === cat ? 'active' : ''}`}>{cat}</div>)}
@@ -929,6 +929,10 @@ function CommunityPage({ posts }) {
             </Link>
           ))}
         </div>
+        <Link to="/community/new" className="fab-button">
+          <Edit2 size={24} />
+          <span>Write</span>
+        </Link>
       </main>
     </>
   );
@@ -967,7 +971,7 @@ function CommunityDetailPage({ posts, myLikes, toggleLike, addComment, user }) {
     <div style={{ paddingBottom: '20px', background: 'white', minHeight: '100vh' }}>
       <header style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, background: 'white', zIndex: 10 }}>
         <ArrowLeft size={24} onClick={() => navigate(-1)} style={{ cursor: 'pointer', marginRight: '1rem' }} />
-        <span style={{ fontWeight: '600' }}>Post</span>
+        <span style={{ fontWeight: '600' }}></span>
       </header>
       <main style={{ padding: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -1025,7 +1029,7 @@ function NewPostPage({ addPost, user }) {
     <>
       <header style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem', background: 'white', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, zIndex: 10 }}>
         <ArrowLeft size={24} onClick={() => navigate(-1)} style={{ cursor: 'pointer', marginRight: '1rem' }} />
-        <span style={{ fontWeight: '600', fontSize: '1.2rem' }}>Write Post</span>
+        <span style={{ fontWeight: '600', fontSize: '1.2rem' }}></span>
       </header>
       <main>
         <div className="glass-card">
@@ -1054,7 +1058,7 @@ function ChatListPage({ rooms, user }) {
   
   return (
     <>
-      <Header rightContent={<span style={{fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--primary)'}}>Chats</span>} />
+      <Header />
       <main>
         {rooms.length === 0 ? (
           <div className="empty-state-container">
@@ -1117,7 +1121,7 @@ function ChatRoomPage({ messages, joinRoom, sendMessage, user }) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#abc1d1' }}>
       <header style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem', background: 'white', borderBottom: '1px solid rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 10 }}>
         <ArrowLeft size={24} onClick={() => navigate(-1)} style={{ cursor: 'pointer', marginRight: '1rem' }} />
-        <span style={{ fontWeight: '600', fontSize: '1.2rem', color: '#1A1A1A' }}>Chat</span>
+        <span style={{ fontWeight: '600', fontSize: '1.2rem', color: '#1A1A1A' }}></span>
       </header>
       
       <main style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>

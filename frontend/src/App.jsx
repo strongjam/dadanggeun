@@ -1054,42 +1054,84 @@ function NewPostPage({ addPost, user }) {
 // ========== CHATS ==========
 function ChatListPage({ rooms, user }) {
   const navigate = useNavigate();
+  const [filter, setFilter] = useState('all');
   if (!user) return <Navigate to="/login" />;
+
+  const filtered = rooms.filter(r => {
+    if (filter === 'selling') return Number(r.seller_id) === Number(user.id);
+    if (filter === 'buying') return Number(r.buyer_id) === Number(user.id);
+    return true;
+  });
   
   return (
     <>
       <Header />
-      <main>
-        {rooms.length === 0 ? (
-          <div className="empty-state-container">
+      <main style={{ padding: 0 }}>
+        <div style={{ padding: '1rem', background: 'white', borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 'var(--header-height)', zIndex: 9, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ position: 'relative', width: '140px' }}>
+            <select 
+              value={filter} 
+              onChange={(e) => setFilter(e.target.value)}
+              className="chat-filter-select"
+            >
+              <option value="all">전체 대화</option>
+              <option value="selling">판매 대화</option>
+              <option value="buying">구매 대화</option>
+            </select>
+          </div>
+          <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: '500' }}>
+            Total {filtered.length} rooms
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="empty-state-container" style={{ paddingTop: '5rem' }}>
             <div className="empty-state-icon">
               <MessageCircle size={40} />
             </div>
-            <h2 className="empty-state-title">No chat rooms yet</h2>
-            <p className="empty-state-desc">Start a conversation with your neighbors.</p>
-            <button className="empty-state-btn" onClick={() => navigate('/')}>
-              Browse items
-            </button>
+            <h2 className="empty-state-title">No matching chats</h2>
+            <p className="empty-state-desc">Try changing the filter or browse more items.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {rooms.map(r => (
-              <Link to={`/chat/${r.id}`} key={r.id} className="glass-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', textDecoration: 'none', color: 'inherit', marginBottom: 0, padding: '1rem', position: 'relative' }}>
-                {r.partner_image ? <img src={r.partner_image} style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }} /> : <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#E0E0E0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><UserIcon size={28} color="#777" /></div>}
-                <div style={{ flex: 1, minWidth: 0, paddingRight: r.product_images && r.product_images.length > 0 ? '40px' : '0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                    <span style={{ fontWeight: '600', fontSize: '1rem' }}>{r.partner_name || 'Unknown'}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {filtered.map(r => (
+              <Link to={`/chat/${r.id}`} key={r.id} className="chat-list-item">
+                <div className="chat-avatar-column">
+                  {r.partner_image ? (
+                    <img src={r.partner_image} style={{ width: '48px', height: '48px', borderRadius: '16px', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <UserIcon size={24} color="#94A3B8" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="chat-info-column">
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginBottom: '4px' }}>
+                    <div className="chat-partner-name">{r.partner_name || 'Unknown'}</div>
+                    <div className="chat-last-time">
                       {r.last_message_time ? (() => {
                         const d = new Date(r.last_message_time.endsWith('Z') ? r.last_message_time : r.last_message_time + 'Z');
-                        return isNaN(d.getTime()) ? '' : d.toLocaleDateString().replace(/\.$/, '');
+                        if (isNaN(d.getTime())) return '';
+                        const now = new Date();
+                        const isToday = d.toDateString() === now.toDateString();
+                        return isToday 
+                          ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
                       })() : ''}
-                    </span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.last_message || 'Start chatting!'}</div>
+                  <div className="chat-last-message">{r.last_message || 'Start chatting!'}</div>
                 </div>
-                {r.product_images && r.product_images.length > 0 && <img src={r.product_images[0]} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', position: 'absolute', right: '1rem', top: '1rem' }} />}
-                {r.unread_count > 0 && <span style={{ position: 'absolute', bottom: '1rem', right: '1rem', background: 'var(--primary)', color: 'white', borderRadius: '50%', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 'bold' }}>{r.unread_count}</span>}
+
+                <div className="chat-meta-column">
+                  {r.product_images && r.product_images.length > 0 && (
+                    <img src={r.product_images[0]} className="chat-product-thumbnail" />
+                  )}
+                  {r.unread_count > 0 && (
+                    <span className="chat-unread-badge">{r.unread_count}</span>
+                  )}
+                </div>
               </Link>
             ))}
           </div>

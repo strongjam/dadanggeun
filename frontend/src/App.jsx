@@ -646,10 +646,12 @@ function HomePage({ products, user }) {
                   <div className="product-title">{p.title}</div>
                   <div className="product-desc">{p.description}</div>
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto' }}>
-                    <div className="product-price">${Number(p.price).toFixed(2)}</div>
+                    <div className="product-price">
+                      {p.is_free === 1 ? <span className="badge-free">나눔</span> : `$${Number(p.price).toFixed(2)}`}
+                    </div>
                   </div>
                 </div>
-                {p.is_quick === 1 && <span className="badge-quick">⚡ Quick Sale</span>}
+                {p.is_quick === 1 && p.is_free === 0 && <span className="badge-quick">⚡ Quick Sale</span>}
               </Link>
             )
           })}
@@ -753,7 +755,9 @@ function ProductDetailPage({ products, deleteProduct, user, createRoom, myProduc
         <p style={{ lineHeight: '1.6', color: 'var(--text-main)', whiteSpace: 'pre-wrap', fontSize: '1.05rem', minHeight: '100px' }}>{product.description}</p>
       </div>
       <div style={{ position: 'fixed', bottom: 0, width: '100%', maxWidth: '600px', background: 'white', padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50 }}>
-        <div style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--primary)' }}>${Number(product.price).toFixed(2)}</div>
+        <div style={{ fontSize: '1.4rem', fontWeight: '800', color: product.is_free === 1 ? '#48BB78' : 'var(--primary)' }}>
+          {product.is_free === 1 ? '나눔 🎁' : `$${Number(product.price).toFixed(2)}`}
+        </div>
         {user && String(user.id) === String(product.seller_id) ? (
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button onClick={() => navigate(`/product/${product.id}/edit`)} className="btn-primary" style={{ background: '#718096', boxShadow: 'none', padding: '0.75rem 1.2rem', width: 'auto' }}>Edit</button>
@@ -794,6 +798,7 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
   const [price, setPrice] = useState(existingProduct ? String(existingProduct.price) : '');
   const [description, setDescription] = useState(existingProduct ? existingProduct.description : '');
   const [isQuick, setIsQuick] = useState(existingProduct ? existingProduct.is_quick === 1 : false);
+  const [isFree, setIsFree] = useState(existingProduct ? existingProduct.is_free === 1 : false);
 
   if (!user) return <Navigate to="/login" />;
   if (existingProduct && String(user.id) !== String(existingProduct.seller_id)) return <Navigate to="/" />;
@@ -820,9 +825,11 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
     
     const formData = new FormData();
     formData.append('title', title);
-    formData.append('price', isQuick ? parseFloat(price) * 0.7 : parseFloat(price));
+    const finalPrice = isFree ? 0 : (isQuick ? parseFloat(price) * 0.7 : parseFloat(price));
+    formData.append('price', finalPrice);
     formData.append('description', description);
     formData.append('isQuick', isQuick);
+    formData.append('isFree', isFree);
     formData.append('existingImages', JSON.stringify(previews.filter(p => p.startsWith('/uploads'))));
     files.forEach(file => formData.append('images', file));
 
@@ -860,13 +867,31 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
                 ))}
               </div>
             </div>
+            <div className="sale-type-toggle">
+              <button type="button" className={`sale-type-btn ${!isFree ? 'active' : ''}`} onClick={() => setIsFree(false)}>판매하기</button>
+              <button type="button" className={`sale-type-btn ${isFree ? 'active' : ''}`} onClick={() => { setIsFree(true); setPrice('0'); setIsQuick(false); }}>나눔하기</button>
+            </div>
+
             <div className="form-group"><label className="form-label">Title</label><input type="text" className="form-input" value={title} onChange={e => setTitle(e.target.value)} required /></div>
-            <div className="form-group"><label className="form-label">Price ($)</label><input type="number" className="form-input" value={price} onChange={e => setPrice(e.target.value)} required /></div>
+            
+            {!isFree && (
+              <div className="form-group"><label className="form-label">Price ($)</label><input type="number" className="form-input" value={price} onChange={e => setPrice(e.target.value)} required /></div>
+            )}
+
+            {isFree && (
+              <div style={{ background: '#F0FFF4', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', color: '#2F855A', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.2rem' }}>🎁</span> 이 상품은 이웃에게 무료로 나눔됩니다.
+              </div>
+            )}
+            
             <div className="form-group"><label className="form-label">Description</label><textarea className="form-input" rows="4" value={description} onChange={e => setDescription(e.target.value)}></textarea></div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', cursor: 'pointer' }}>
-              <input type="checkbox" checked={isQuick} onChange={e => setIsQuick(e.target.checked)} style={{ width: '1.2rem', height: '1.2rem' }} />
-              <span style={{ fontWeight: '500' }}>Mark as "Quick Sale" (-30% applied)</span>
-            </label>
+            
+            {!isFree && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={isQuick} onChange={e => setIsQuick(e.target.checked)} style={{ width: '1.2rem', height: '1.2rem' }} />
+                <span style={{ fontWeight: '500' }}>Mark as "Quick Sale" (-30% applied)</span>
+              </label>
+            )}
             <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><Check size={20} /> {existingProduct ? "Update Listing" : "Post Listing"}</button>
           </form>
         </div>

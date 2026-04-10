@@ -155,13 +155,13 @@ app.get('/api/products', async (req, res) => {
 });
 
 app.post('/api/products', authenticateToken, upload.array('images', 10), async (req, res) => {
-  const { title, description, price, isQuick } = req.body;
+  const { title, description, price, isQuick, isFree } = req.body;
   const images = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
 
   try {
     const r = await runQuery(
-      `INSERT INTO products (seller_id, title, description, price, is_quick, images) VALUES (?, ?, ?, ?, ?, ?)`,
-      [req.user.id, title, description, price, isQuick === 'true' ? 1 : 0, JSON.stringify(images)]
+      `INSERT INTO products (seller_id, title, description, price, is_quick, is_free, images) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [req.user.id, title, description, price, isQuick === 'true' ? 1 : 0, isFree === 'true' ? 1 : 0, JSON.stringify(images)]
     );
     res.json({ id: r.lastID });
   } catch (err) {
@@ -170,7 +170,7 @@ app.post('/api/products', authenticateToken, upload.array('images', 10), async (
 });
 
 app.put('/api/products/:id', authenticateToken, upload.array('images', 10), async (req, res) => {
-  const { title, description, price, isQuick, existingImages } = req.body;
+  const { title, description, price, isQuick, isFree, existingImages } = req.body;
   
   try {
     const p = await getQuery(`SELECT seller_id, images FROM products WHERE id = ?`, [req.params.id]);
@@ -182,8 +182,8 @@ app.put('/api/products/:id', authenticateToken, upload.array('images', 10), asyn
     }
     
     await runQuery(
-      `UPDATE products SET title=?, description=?, price=?, is_quick=?, images=? WHERE id=?`,
-      [title, description, price, isQuick === 'true' ? 1 : 0, JSON.stringify(combinedImages), req.params.id]
+      `UPDATE products SET title=?, description=?, price=?, is_quick=?, is_free=?, images=? WHERE id=?`,
+      [title, description, price, isQuick === 'true' ? 1 : 0, isFree === 'true' ? 1 : 0, JSON.stringify(combinedImages), req.params.id]
     );
     res.json({ success: true });
   } catch (err) {

@@ -453,6 +453,44 @@ main {
   box-shadow: 0 15px 30px rgba(99, 102, 241, 0.5);
 }
 
+/* Sale Type Toggle */
+.sale-type-toggle {
+  display: flex;
+  background: #EDF2F7;
+  padding: 4px;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  gap: 4px;
+}
+
+.sale-type-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: #718096;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.sale-type-btn.active {
+  background: white;
+  color: var(--primary);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.badge-free {
+  background: linear-gradient(135deg, #48BB78 0%, #38A169 100%);
+  color: white;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(72, 187, 120, 0.4);
+}
+
 .fab-button:active {
   transform: scale(0.95);
   transition: all 0.1s;

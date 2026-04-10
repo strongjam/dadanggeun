@@ -587,13 +587,25 @@ main {
 }
 
 .badge-free {
-  background: linear-gradient(135deg, #48BB78 0%, #38A169 100%);
+  background: linear-gradient(135deg, #00F260 0%, #0575E6 100%);
   color: white;
-  font-size: 0.7rem;
-  padding: 4px 10px;
+  font-size: 0.75rem;
+  padding: 4px 12px;
   border-radius: 20px;
   font-weight: 800;
-  box-shadow: 0 4px 10px rgba(72, 187, 120, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 242, 96, 0.4);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  animation: badge-pulse 2s infinite;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+@keyframes badge-pulse {
+  0% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 242, 96, 0.4); }
+  50% { transform: scale(1.05); box-shadow: 0 4px 25px rgba(0, 242, 96, 0.6); }
+  100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 242, 96, 0.4); }
 }
 
 .fab-button:active {

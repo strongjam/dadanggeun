@@ -647,7 +647,11 @@ function HomePage({ products, user }) {
                   <div className="product-desc">{p.description}</div>
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto' }}>
                     <div className="product-price">
-                      {p.is_free === 1 ? <span className="badge-free">Free</span> : `$${Number(p.price).toFixed(2)}`}
+                      {p.is_free === 1 ? (
+                        <span className="badge-free">
+                           🎁 Free
+                        </span>
+                      ) : `$${Number(p.price).toFixed(2)}`}
                     </div>
                   </div>
                 </div>
@@ -756,7 +760,11 @@ function ProductDetailPage({ products, deleteProduct, user, createRoom, myProduc
       </div>
       <div style={{ position: 'fixed', bottom: 0, width: '100%', maxWidth: '600px', background: 'white', padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50 }}>
         <div style={{ fontSize: '1.4rem', fontWeight: '800', color: product.is_free === 1 ? '#48BB78' : 'var(--primary)' }}>
-          {product.is_free === 1 ? 'Free 🎁' : `$${Number(product.price).toFixed(2)}`}
+          {product.is_free === 1 ? (
+            <span className="badge-free" style={{ fontSize: '1.1rem', padding: '6px 16px' }}>
+              🎁 Free Giveaway
+            </span>
+          ) : `$${Number(product.price).toFixed(2)}`}
         </div>
         {user && String(user.id) === String(product.seller_id) ? (
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -821,7 +829,7 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !price) return;
+    if (!title || (!isFree && !price)) return;
     
     const formData = new FormData();
     formData.append('title', title);
@@ -836,10 +844,10 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
     try {
       if (existingProduct) {
         await updateProduct(existingProduct.id, formData);
-        navigate(`/product/${existingProduct.id}`);
+        navigate(-1);
       } else {
         await addProduct(formData);
-        navigate('/');
+        navigate('/', { replace: true });
       }
     } catch (e) {
       alert(e.message);
@@ -869,7 +877,7 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
             </div>
             <div className="sale-type-toggle">
               <button type="button" className={`sale-type-btn ${!isFree ? 'active' : ''}`} onClick={() => setIsFree(false)}>For Sale</button>
-              <button type="button" className={`sale-type-btn ${isFree ? 'active' : ''}`} onClick={() => { setIsFree(true); setPrice('0'); setIsQuick(false); }}>Giveaway</button>
+              <button type="button" className={`sale-type-btn ${isFree ? 'active' : ''}`} onClick={() => { setIsFree(true); setIsQuick(false); }}>Giveaway</button>
             </div>
 
             <div className="form-group"><label className="form-label">Title</label><input type="text" className="form-input" value={title} onChange={e => setTitle(e.target.value)} required /></div>

@@ -374,7 +374,6 @@ function BottomNav({ user, rooms = [] }) {
   return (
     <nav className="bottom-nav">
       <Link to="/" className={`nav-item ${path === '/' ? 'active' : ''}`}><Home size={24} /><span>Home</span></Link>
-      <Link to={user ? "/register" : "/login"} className={`nav-item ${path === '/register' ? 'active' : ''}`}><PlusCircle size={24} /><span>Sell</span></Link>
       <Link to={user ? "/chats" : "/login"} className={`nav-item ${path.startsWith('/chats') ? 'active' : ''}`}>
         <div style={{ position: 'relative' }}>
           <MessageCircle size={24} />
@@ -648,13 +647,17 @@ function HomePage({ products, user }) {
                   <div className="product-desc">{p.description}</div>
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto' }}>
                     <div className="product-price">${Number(p.price).toFixed(2)}</div>
-                    {p.is_quick === 1 && <span className="badge-quick">⚡ Quick Sale</span>}
                   </div>
                 </div>
+                {p.is_quick === 1 && <span className="badge-quick">⚡ Quick Sale</span>}
               </Link>
             )
           })}
         </div>
+        <Link to={user ? "/register" : "/login"} className="fab-button">
+          <PlusCircle size={24} />
+          <span>Write</span>
+        </Link>
       </main>
     </>
   );

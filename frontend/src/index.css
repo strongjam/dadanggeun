@@ -116,6 +116,7 @@ main {
 }
 
 .product-item {
+  position: relative;
   background: white;
   border-radius: 12px;
   overflow: hidden;
@@ -181,13 +182,20 @@ main {
 }
 
 .badge-quick {
-  background: #E53E3E;
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  background: linear-gradient(135deg, #E53E3E 0%, #C53030 100%);
   color: white;
   font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 700;
-  margin-left: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(229, 62, 62, 0.4);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 /* Forms */
@@ -407,5 +415,55 @@ main {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Floating Action Button (Extended) */
+.fab-button {
+  position: fixed;
+  bottom: 110px; /* 위치 상향 조정 */
+  right: calc(50% - 300px + 24px); 
+  height: 54px;
+  padding: 0 22px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, var(--primary) 0%, #4F46E5 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px; /* 아이콘과 텍스트 간격 */
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+  cursor: pointer;
+  z-index: 99;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 600px) {
+  .fab-button {
+    right: 24px;
+  }
+}
+
+.fab-button:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 15px 30px rgba(99, 102, 241, 0.5);
+}
+
+.fab-button:active {
+  transform: scale(0.95);
+  transition: all 0.1s;
+}
+
+@media (max-width: 600px) {
+  .fab-button:hover {
+    transform: translateY(-5px) scale(1.05);
+  }
+  .fab-button:active {
+    transform: scale(0.95);
+  }
 }
 

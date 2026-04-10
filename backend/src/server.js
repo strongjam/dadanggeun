@@ -64,6 +64,14 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+const isAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ error: 'Admin access required' });
+  }
+};
+
 // ======================== AUTH & PROFILE ========================
 app.post('/api/auth/signup', async (req, res) => {
   const { login_id, password } = req.body;
@@ -91,7 +99,7 @@ app.post('/api/auth/login', async (req, res) => {
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(400).json({ error: 'Invalid login' });
 
-    const token = jwt.sign({ id: user.id, login_id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user.id, login_id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     delete user.password_hash;
     res.json({ token, user });
   } catch (err) {
@@ -101,7 +109,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const user = await getQuery(`SELECT id, login_id, profile_name, profile_image FROM users WHERE id = ?`, [req.user.id]);
+    const user = await getQuery(`SELECT id, login_id, profile_name, profile_image, role FROM users WHERE id = ?`, [req.user.id]);
     res.json({ user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -480,6 +488,128 @@ io.on('connection', (socket) => {
       console.error('WS Error:', e);
     }
   });
+});
+
+// ======================== ADMIN ENDPOINTS ========================
+app.get('/api/admin/stats', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const userCount = await getQuery(`SELECT COUNT(*) as count FROM users`);
+    const productCount = await getQuery(`SELECT COUNT(*) as count FROM products`);
+    const postCount = await getQuery(`SELECT COUNT(*) as count FROM posts`);
+    const chatRoomCount = await getQuery(`SELECT COUNT(*) as count FROM chat_rooms`);
+    
+    res.json({
+      users: userCount.count,
+      products: productCount.count,
+      posts: postCount.count,
+      chatRooms: chatRoomCount.count
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const users = await allQuery(`SELECT id, login_id, profile_name, profile_image, role, created_at FROM users ORDER BY created_at DESC`);
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/users/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    if (String(req.params.id) === String(req.user.id)) return res.status(400).json({ error: 'Cannot delete yourself' });
+    await runQuery(`DELETE FROM users WHERE id = ?`, [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/products', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const products = await allQuery(`
+      SELECT p.*, u.profile_name as seller_name 
+      FROM products p 
+      JOIN users u ON p.seller_id = u.id 
+      ORDER BY p.created_at DESC
+    `);
+    products.forEach(p => p.images = JSON.parse(p.images || '[]'));
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/products/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    await runQuery(`DELETE FROM products WHERE id = ?`, [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/posts', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const posts = await allQuery(`
+      SELECT p.*, u.profile_name as author_name 
+      FROM posts p 
+      JOIN users u ON p.author_id = u.id 
+      ORDER BY p.created_at DESC
+    `);
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/posts/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    await runQuery(`DELETE FROM posts WHERE id = ?`, [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/chat-rooms', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const rooms = await allQuery(`
+      SELECT 
+        cr.id, 
+        COALESCE(p.title, 'Deleted Product') as product_title, 
+        COALESCE(u1.profile_name, 'Unknown') as user1_name, 
+        COALESCE(u2.profile_name, 'Unknown') as user2_name,
+        (SELECT text FROM chat_messages WHERE room_id = cr.id ORDER BY created_at DESC LIMIT 1) as last_message,
+        (SELECT created_at FROM chat_messages WHERE room_id = cr.id ORDER BY created_at DESC LIMIT 1) as last_activity
+      FROM chat_rooms cr
+      LEFT JOIN products p ON cr.product_id = p.id
+      LEFT JOIN users u1 ON cr.buyer_id = u1.id
+      LEFT JOIN users u2 ON cr.seller_id = u2.id
+      ORDER BY COALESCE(last_activity, cr.id) DESC
+    `);
+    res.json(Array.isArray(rooms) ? rooms : []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/chat-rooms/:roomId/messages', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const messages = await allQuery(`
+      SELECT m.text as content, m.*, u.profile_name as sender_name, u.role as sender_role
+      FROM chat_messages m
+      JOIN users u ON m.sender_id = u.id
+      WHERE m.room_id = ?
+      ORDER BY m.created_at ASC
+    `, [req.params.roomId]);
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 httpServer.listen(PORT, () => {

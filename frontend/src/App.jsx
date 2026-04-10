@@ -314,15 +314,22 @@ function usePushNotifications(token, user) {
         const pushSubscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey)
+        }).catch(err => {
+          if (err.name === 'InvalidStateError') return registration.pushManager.getSubscription();
+          throw err;
         });
 
-        await fetch(`${API_BASE}/notifications/subscribe`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(pushSubscription)
-        });
+        if (pushSubscription) {
+          await fetch(`${API_BASE}/notifications/subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(pushSubscription)
+          });
+        }
       } catch (e) {
-        console.error('Push setup error:', e);
+        if (e.name !== 'InvalidStateError') {
+          console.warn('Push setup notice:', e.message);
+        }
       }
     };
     registerPush();
@@ -533,6 +540,25 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes }) 
       <Header title="My Profile" />
       <main>
         <div className="glass-card">
+          {user && user.role === 'admin' && (
+            <button 
+              onClick={() => navigate('/admin')} 
+              className="btn-primary" 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '0.5rem', 
+                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', 
+                color: 'white', 
+                boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)', 
+                marginBottom: '1.5rem',
+                border: 'none'
+              }}
+            >
+              <Users size={20} /> [Commander] Admin Panel
+            </button>
+          )}
           <form onSubmit={handleSave}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
               <input type="file" accept="image/*" id="profilePic" onChange={handleImageChange} style={{ display: 'none' }} />
@@ -1106,6 +1132,312 @@ function ChatRoomPage({ messages, joinRoom, sendMessage, user }) {
   );
 }
 
+// ======================== ADMIN PAGE (PREMIUM) ========================
+function AdminPage({ user, token }) {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [stats, setStats] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [chatRooms, setChatRooms] = useState([]);
+  const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const [roomMessages, setRoomMessages] = useState([]);
+  const [adminInput, setAdminInput] = useState('');
+  const [loading, setLoading] = useState(true);
+  const scrollRef = useRef(null);
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') {
+      navigate('/');
+      return;
+    }
+    fetchData();
+
+    // Socket for Admin
+    socketRef.current = io(window.location.origin);
+    const s = socketRef.current;
+    
+    return () => s.disconnect();
+  }, [user]);
+
+  useEffect(() => {
+    if (selectedRoomId && socketRef.current) {
+      socketRef.current.emit('joinRoom', selectedRoomId);
+      socketRef.current.on('newMessage', (msg) => {
+        if (msg.room_id === selectedRoomId) {
+          setRoomMessages(prev => [...prev, msg]);
+        }
+      });
+      return () => {
+        socketRef.current.off('newMessage');
+      };
+    }
+  }, [selectedRoomId]);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [roomMessages]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const [s, u, pr, po, cr] = await Promise.all([
+        fetch(`${API_BASE}/admin/stats`, { headers }).then(r => r.json()),
+        fetch(`${API_BASE}/admin/users`, { headers }).then(r => r.json()),
+        fetch(`${API_BASE}/admin/products`, { headers }).then(r => r.json()),
+        fetch(`${API_BASE}/admin/posts`, { headers }).then(r => r.json()),
+        fetch(`${API_BASE}/admin/chat-rooms`, { headers }).then(r => r.json())
+      ]);
+      setStats(s || { users: 0, products: 0, posts: 0, chatRooms: 0 });
+      setUsers(Array.isArray(u) ? u : []);
+      setProducts(Array.isArray(pr) ? pr : []);
+      setPosts(Array.isArray(po) ? po : []);
+      setChatRooms(Array.isArray(cr) ? cr : []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTimeout(() => setLoading(false), 500);
+    }
+  };
+
+  const fetchRoomMessages = async (roomId) => {
+    setSelectedRoomId(roomId);
+    try {
+      const res = await fetch(`${API_BASE}/admin/chat-rooms/${roomId}/messages`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setRoomMessages(data);
+    } catch (e) { console.error(e); }
+  };
+
+  const sendAdminMessage = () => {
+    if (!adminInput.trim() || !selectedRoomId) return;
+    const msgData = {
+      room_id: selectedRoomId,
+      sender_id: user.id,
+      content: adminInput
+    };
+    socketRef.current.emit('sendMessage', msgData);
+    setAdminInput('');
+  };
+
+  const handleDelete = async (type, id) => {
+    if (!confirm(`Are you sure you want to delete this ${type}? This action cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/admin/${type}s/${id}`, { 
+        method: 'DELETE', 
+        headers: { 'Authorization': `Bearer ${token}` } 
+      });
+      if (res.ok) fetchData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  if (loading) return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC' }}>
+      <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+      <p style={{ marginTop: '1rem', color: '#64748B', fontWeight: '500' }}>Accessing Secure Dashboard...</p>
+    </div>
+  );
+
+  const StatCard = ({ title, value, icon: Icon, color }) => (
+    <div className="glass-card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(255,255,255,0.8)', background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)' }}>
+      <div style={{ padding: '12px', borderRadius: '14px', background: `${color}15`, color: color }}>
+        <Icon size={24} />
+      </div>
+      <div>
+        <div style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500' }}>{title}</div>
+        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1E293B' }}>{value.toLocaleString()}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+      <Header title="Commander Center" />
+      
+      <main style={{ padding: '1rem', paddingBottom: '100px', maxWidth: '800px', margin: '0 auto' }}>
+        {/* Welcome Header */}
+        <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'linear-gradient(90deg, #1A1A1A 0%, #333 100%)', borderRadius: '20px', color: 'white', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <Globe size={18} color="var(--primary)" />
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8 }}>Admin System v2.0</span>
+          </div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>Hello, {user.profile_name || 'Manager'}</h1>
+          <p style={{ fontSize: '0.9rem', opacity: 0.7, margin: '0.5rem 0 0' }}>Everything is running smooth. {stats ? `${stats.users} neighbors are active.` : ''}</p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: '#F1F5F9', padding: '5px', borderRadius: '15px', overflowX: 'auto' }}>
+          {['dashboard', 'users', 'products', 'posts', 'chats'].map(tab => (
+            <button 
+              key={tab} 
+              onClick={() => setActiveTab(tab)}
+              style={{ flex: 1, minWidth: '80px', padding: '0.7rem 0.5rem', borderRadius: '10px', border: 'none', background: activeTab === tab ? 'white' : 'transparent', color: activeTab === tab ? '#1A1A1A' : '#64748B', fontSize: '0.85rem', fontWeight: activeTab === tab ? '700' : '500', cursor: 'pointer', transition: 'all 0.2s', boxShadow: activeTab === tab ? '0 4px 10px rgba(0,0,0,0.05)' : 'none' }}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'dashboard' && stats && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', animation: 'fadeIn 0.4s' }}>
+            <StatCard title="Total Users" value={stats.users} icon={Users} color="#3B82F6" />
+            <StatCard title="Products" value={stats.products} icon={ShoppingBag} color="#10B981" />
+            <StatCard title="Community" value={stats.posts} icon={Globe} color="#8B5CF6" />
+            <StatCard title="Chat Rooms" value={stats.chatRooms} icon={MessageCircle} color="#F59E0B" />
+            <div className="glass-card" style={{ gridColumn: 'span 2', padding: '1.5rem', background: 'white' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>System Health</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.9rem', color: '#64748B' }}>API Server</span>
+                  <span style={{ padding: '4px 10px', background: '#DCFCE7', color: '#166534', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold' }}>ONLINE</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.9rem', color: '#64748B' }}>Database (SQLite)</span>
+                  <span style={{ padding: '4px 10px', background: '#DCFCE7', color: '#166534', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold' }}>STABLE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'users' && (
+          <div style={{ animation: 'fadeIn 0.3s' }}>
+            {users.map(u => (
+              <div key={u.id} className="glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', marginBottom: '0.75rem', background: 'white' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ position: 'relative' }}>
+                    {u.profile_image ? <img src={u.profile_image} style={{ width: '48px', height: '48px', borderRadius: '15px', objectFit: 'cover' }} /> : <div style={{ width: '48px', height: '48px', borderRadius: '15px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><UserIcon size={24} color="#94A3B8" /></div>}
+                    <div style={{ position: 'absolute', bottom: -2, right: -2, width: '12px', height: '12px', background: '#10B981', border: '2px solid white', borderRadius: '50%' }}></div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '700', color: '#1E293B' }}>{u.login_id}</div>
+                    <div style={{ fontSize: '0.75rem', color: u.role === 'admin' ? 'var(--primary)' : '#94A3B8', fontWeight: 'bold' }}>{u.role.toUpperCase()} • Joined {new Date(u.created_at).toLocaleDateString()}</div>
+                  </div>
+                </div>
+                {u.role !== 'admin' && (
+                  <button onClick={() => handleDelete('user', u.id)} style={{ padding: '8px', background: '#FFF1F2', color: '#E11D48', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>
+                    <LogOut size={18} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'products' && (
+          <div style={{ animation: 'fadeIn 0.3s' }}>
+            {products.map(p => (
+              <div key={p.id} className="glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', marginBottom: '0.75rem', background: 'white' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 0 }}>
+                  <img src={p.images[0]} style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover' }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: '700', color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 'bold' }}>${p.price.toLocaleString()} • Seller: {p.seller_name}</div>
+                  </div>
+                </div>
+                <button onClick={() => handleDelete('product', p.id)} style={{ padding: '8px', background: '#FFF1F2', color: '#E11D48', border: 'none', borderRadius: '10px', marginLeft: '1rem' }}>
+                  <LogOut size={18} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'posts' && (
+          <div style={{ animation: 'fadeIn 0.3s' }}>
+            {posts.map(p => (
+              <div key={p.id} className="glass-card" style={{ padding: '1.25rem', marginBottom: '1rem', background: 'white' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--primary)', background: 'var(--primary)15', padding: '4px 10px', borderRadius: '20px' }}>{p.category.toUpperCase()}</span>
+                  <button onClick={() => handleDelete('post', p.id)} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}><LogOut size={18} /></button>
+                </div>
+                <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#1E293B', marginBottom: '0.5rem' }}>{p.title}</div>
+                <div style={{ fontSize: '0.85rem', color: '#64748B' }}>By {p.author_name} • {p.likes || 0} Likes</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'chats' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.3s', height: '60vh' }}>
+            <div style={{ display: 'flex', gap: '1rem', height: '100%' }}>
+              {/* Room List */}
+              <div className="glass-card" style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: 'white', display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '100%' }}>
+                <h3 style={{ fontSize: '0.9rem', color: '#64748B', marginBottom: '0.5rem' }}>Active Conversations</h3>
+                {chatRooms.map(room => (
+                  <div 
+                    key={room.id} 
+                    onClick={() => fetchRoomMessages(room.id)}
+                    style={{ padding: '12px', borderRadius: '12px', background: selectedRoomId === room.id ? 'var(--primary)10' : '#F8FAFC', border: selectedRoomId === room.id ? '1px solid var(--primary)' : '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.2s' }}
+                  >
+                    <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#1E293B' }}>{room.product_title}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{room.user1_name} & {room.user2_name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 'bold', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{room.last_message || 'No messages'}</div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Monitor / Intervene */}
+              <div className="glass-card" style={{ flex: 1.5, display: 'flex', flexDirection: 'column', padding: 0, background: 'white', overflow: 'hidden' }}>
+                {selectedRoomId ? (
+                  <>
+                    <div style={{ padding: '12px', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                      Monitoring Room #{selectedRoomId}
+                    </div>
+                    <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {roomMessages.map((m, idx) => (
+                        <div key={idx} style={{ alignSelf: m.sender_role === 'admin' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginBottom: '2px', textAlign: m.sender_role === 'admin' ? 'right' : 'left' }}>
+                            {m.sender_role === 'admin' ? <span style={{ color: 'var(--secondary)', fontWeight: 'bold' }}>ADMIN</span> : m.sender_name}
+                          </div>
+                          <div style={{ 
+                            padding: '8px 12px', 
+                            borderRadius: '12px', 
+                            fontSize: '0.85rem', 
+                            background: m.sender_role === 'admin' ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : '#F1F5F9',
+                            color: m.sender_role === 'admin' ? 'white' : '#1E293B',
+                            boxShadow: m.sender_role === 'admin' ? '0 4px 10px rgba(245, 158, 11, 0.2)' : 'none'
+                          }}>
+                            {m.content}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ padding: '12px', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '8px' }}>
+                      <input 
+                        className="form-input" 
+                        placeholder="Type intervention..." 
+                        value={adminInput}
+                        onChange={e => setAdminInput(e.target.value)}
+                        onKeyPress={e => e.key === 'Enter' && sendAdminMessage()}
+                        style={{ padding: '10px', fontSize: '0.85rem' }} 
+                      />
+                      <button onClick={sendAdminMessage} style={{ padding: '10px', background: 'var(--secondary)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>
+                        <Send size={18} />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: '0.9rem' }}>
+                    Select a room to monitor
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
 // ========== ROOT ==========
 function AppContent() {
   const { user, token, loading, login, signup, logout, updateProfile } = useAuth();
@@ -1142,6 +1474,7 @@ function AppContent() {
         <Route path="/community/new" element={<NewPostPage addPost={addPost} user={user} />} />
         <Route path="/login" element={<LoginPage login={login} signup={signup} />} />
         <Route path="/profile" element={<ProfilePage user={user} logout={logout} updateProfile={updateProfile} products={products} myProductLikes={myProductLikes} />} />
+        <Route path="/admin" element={<AdminPage user={user} token={token} />} />
       </Routes>
       <BottomNav user={user} rooms={rooms} />
     </div>

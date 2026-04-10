@@ -18,8 +18,14 @@ export const initDb = () => {
       password_hash TEXT NOT NULL,
       profile_name TEXT,
       profile_image TEXT,
+      role TEXT DEFAULT 'user',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // Migration for existing databases
+    db.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`, (err) => {
+      // Ignore error if column already exists
+    });
 
     db.run(`CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,6 +110,21 @@ export const initDb = () => {
     )`);
 
     // SEED DATA
+    const managerLogin = 'manager';
+    const managerHash = '$2b$10$fudUDrL.nVaECoegLgdlHOhm/44fQp6KClpjNSf9jVMf3YWLM7Jti'; // Hash for '1234'
+    
+    db.get('SELECT * FROM users WHERE login_id = ?', [managerLogin], (err, row) => {
+      if (!err && !row) {
+        console.log('Seeding Manager account...');
+        db.run(`INSERT INTO users (login_id, password_hash, profile_name, role) VALUES (?, ?, ?, ?)`, 
+          [managerLogin, managerHash, 'Manager', 'admin']);
+      } else if (row && row.role !== 'admin') {
+        console.log('Upgrading Manager account role...');
+        db.run(`UPDATE users SET role = ?, password_hash = ? WHERE login_id = ?`, 
+          ['admin', managerHash, managerLogin]);
+      }
+    });
+
     db.get('SELECT COUNT(*) as count FROM products', (err, row) => {
       if (!err && row.count === 0) {
         console.log('Seeding MVP mock data into fresh SQLite database...');

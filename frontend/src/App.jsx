@@ -648,9 +648,7 @@ function HomePage({ products, user }) {
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto' }}>
                     <div className="product-price">
                       {p.is_free === 1 ? (
-                        <span className="badge-free">
-                           🎁 Free
-                        </span>
+                        <span className="badge-free">Free</span>
                       ) : `$${Number(p.price).toFixed(2)}`}
                     </div>
                   </div>
@@ -759,10 +757,10 @@ function ProductDetailPage({ products, deleteProduct, user, createRoom, myProduc
         <p style={{ lineHeight: '1.6', color: 'var(--text-main)', whiteSpace: 'pre-wrap', fontSize: '1.05rem', minHeight: '100px' }}>{product.description}</p>
       </div>
       <div style={{ position: 'fixed', bottom: 0, width: '100%', maxWidth: '600px', background: 'white', padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50 }}>
-        <div style={{ fontSize: '1.4rem', fontWeight: '800', color: product.is_free === 1 ? '#48BB78' : 'var(--primary)' }}>
+        <div style={{ fontSize: '1.4rem', fontWeight: '800', color: product.is_free === 1 ? '#008243' : 'var(--primary)' }}>
           {product.is_free === 1 ? (
-            <span className="badge-free" style={{ fontSize: '1.1rem', padding: '6px 16px' }}>
-              🎁 Free Giveaway
+            <span className="badge-free" style={{ fontSize: '1.1rem', padding: '6px 14px', borderRadius: '8px' }}>
+              Free
             </span>
           ) : `$${Number(product.price).toFixed(2)}`}
         </div>
@@ -1168,33 +1166,33 @@ function ChatRoomPage({ messages, joinRoom, sendMessage, user }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#abc1d1' }}>
+    <div className="chat-room-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <header style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem', background: 'white', borderBottom: '1px solid rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 10 }}>
         <ArrowLeft size={24} onClick={() => navigate(-1)} style={{ cursor: 'pointer', marginRight: '1rem' }} />
         <span style={{ fontWeight: '600', fontSize: '1.2rem', color: '#1A1A1A' }}></span>
       </header>
       
-      <main style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+      <main style={{ flex: 1, overflowY: 'auto', padding: '1.2rem 1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {messages.map(m => {
             const isMe = String(m.sender_id) === String(user.id);
             const rawDate = m.created_at || new Date().toISOString();
             const dateObj = new Date(rawDate.endsWith('Z') ? rawDate : rawDate + 'Z');
             const timeStr = isNaN(dateObj.getTime()) ? '' : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             return (
-              <div key={m.id} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', gap: '0.5rem', marginBottom: '0.4rem', maxWidth: '85%' }}>
+              <div key={m.id} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', gap: '0.6rem', marginBottom: '0.2rem', maxWidth: '88%' }}>
                 {!isMe && (
                    m.profile_image 
-                     ? <img src={m.profile_image} style={{ width: '40px', height: '40px', borderRadius: '16px', objectFit: 'cover', marginTop: '2px', flexShrink: 0 }} />
-                     : <div style={{ width: '40px', height: '40px', borderRadius: '16px', background: '#E0E0E0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '2px', flexShrink: 0 }}><UserIcon size={24} color="#777" /></div>
+                     ? <img src={m.profile_image} style={{ width: '38px', height: '38px', borderRadius: '14px', objectFit: 'cover', marginTop: '4px', flexShrink: 0 }} />
+                     : <div style={{ width: '38px', height: '38px', borderRadius: '14px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '4px', flexShrink: 0 }}><UserIcon size={20} color="#94A3B8" /></div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', flex: 1, minWidth: 0 }}>
-                  {!isMe && <span style={{ fontSize: '0.75rem', color: '#444', marginBottom: '0.2rem', marginLeft: '0.2rem' }}>{m.profile_name || 'User'}</span>}
+                  {!isMe && <span style={{ fontSize: '0.75rem', color: '#718096', marginBottom: '4px', marginLeft: '4px', fontWeight: '500' }}>{m.profile_name || 'User'}</span>}
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.4rem', flexDirection: isMe ? 'row-reverse' : 'row' }}>
-                    <div className={isMe ? 'bubble-me' : 'bubble-partner'} style={{ background: isMe ? '#FEE500' : 'white', color: '#1A1A1A', padding: '0.55rem 0.8rem', borderRadius: '16px', borderTopRightRadius: isMe ? '3px' : '16px', borderTopLeftRadius: !isMe ? '3px' : '16px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', fontSize: '0.95rem', lineHeight: '1.4', wordBreak: 'break-word' }}>
+                    <div className={isMe ? 'bubble-me' : 'bubble-partner'} style={{ wordBreak: 'break-word', fontSize: '0.95rem' }}>
                       {m.text}
                     </div>
-                    <span style={{ fontSize: '0.65rem', color: '#556677', marginBottom: '2px', whiteSpace: 'nowrap', flexShrink: 0 }}>{timeStr}</span>
+                    <span style={{ fontSize: '0.65rem', color: '#A0AEC0', marginBottom: '2px', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: '500' }}>{timeStr}</span>
                   </div>
                 </div>
               </div>
@@ -1204,10 +1202,12 @@ function ChatRoomPage({ messages, joinRoom, sendMessage, user }) {
         </div>
       </main>
 
-      <div style={{ padding: '0.6rem 0.8rem', background: 'white' }}>
-        <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <input type="text" className="form-input" style={{ flex: 1, borderRadius: '24px', padding: '0.7rem 1rem', background: '#F0F0F0', border: 'none', fontSize: '0.95rem' }} placeholder="Type a message..." value={text} onChange={e => setText(e.target.value)} />
-          <button type="submit" style={{ width: '40px', height: '40px', borderRadius: '50%', background: text.trim() ? '#FEE500' : '#E0E0E0', color: text.trim() ? '#1A1A1A' : '#A0A0A0', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: text.trim() ? 'pointer' : 'default', transition: 'background 0.2s' }} disabled={!text.trim()}><Send size={18} /></button>
+      <div className="chat-input-container">
+        <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', width: '100%' }}>
+          <input type="text" className="chat-input-field" placeholder="메시지 보내기" value={text} onChange={e => setText(e.target.value)} />
+          <button type="submit" className="chat-send-btn" disabled={!text.trim()} style={{ opacity: text.trim() ? 1 : 0.5 }}>
+            <Send size={18} />
+          </button>
         </form>
       </div>
     </div>

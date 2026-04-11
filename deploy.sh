@@ -26,6 +26,17 @@ ssh $SSH_ALIAS "sudo mkdir -p $REMOTE_PATH && sudo chown -R \$USER:\$USER $REMOT
 # 2. 프론트엔드 빌드
 echo "[2/5] Building React App..."
 cd "$SCRIPT_DIR/frontend"
+
+# 로컬 환경에서도 Node 버전 체크 (Vite 요구사항 방영)
+if [ -f "$HOME/.nvm/nvm.sh" ]; then
+    source "$HOME/.nvm/nvm.sh"
+    if ! nvm use 22 &> /dev/null; then
+        echo "Node 22 not found locally. Installing..."
+        nvm install 22
+        nvm use 22
+    fi
+fi
+
 npm install
 npm run build
 cd "$SCRIPT_DIR"

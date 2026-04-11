@@ -420,31 +420,89 @@ main {
   border: var(--glass-border);
 }
 
-/* Chat Speech Bubbles */
-.bubble-me {
-  position: relative;
+/* Chat Speech Bubbles - Modern Dadan Redesign */
+.chat-room-container {
+  background-color: #F8FAFC;
+  background-image: 
+    radial-gradient(#E2E8F0 0.5px, transparent 0.5px),
+    radial-gradient(#E2E8F0 0.5px, #F8FAFC 0.5px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
 }
-.bubble-me::after {
-  content: '';
-  position: absolute;
-  right: -8px;
-  top: 10px;
-  border-width: 6px 0 6px 8px;
-  border-style: solid;
-  border-color: transparent transparent transparent #FEE500;
+
+.bubble-me {
+  background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+  color: white;
+  border-radius: 18px 18px 4px 18px;
+  padding: 10px 16px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  border: none;
+  font-weight: 500;
+  max-width: 80%;
+  position: relative;
+  line-height: 1.5;
 }
 
 .bubble-partner {
+  background: white;
+  color: #1A202C;
+  border-radius: 18px 18px 18px 4px;
+  padding: 10px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #E2E8F0;
+  font-weight: 500;
+  max-width: 80%;
   position: relative;
+  line-height: 1.5;
 }
-.bubble-partner::after {
-  content: '';
-  position: absolute;
-  left: -8px;
-  top: 10px;
-  border-width: 6px 8px 6px 0;
-  border-style: solid;
-  border-color: transparent white transparent transparent;
+
+/* Chat Input Bar - Glassmorphism */
+.chat-input-container {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 12px 16px !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.chat-input-field {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 24px;
+  padding: 10px 16px;
+  flex: 1;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.chat-input-field:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(255, 126, 54, 0.1);
+}
+
+.chat-send-btn {
+  background: #6366F1;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.chat-send-btn:hover {
+  transform: scale(1.05);
 }
 
 /* Empty State UI - Premium Redesign */
@@ -587,25 +645,16 @@ main {
 }
 
 .badge-free {
-  background: linear-gradient(135deg, #00F260 0%, #0575E6 100%);
-  color: white;
-  font-size: 0.75rem;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-weight: 800;
-  box-shadow: 0 4px 15px rgba(0, 242, 96, 0.4);
+  background-color: #E7F7EF;
+  color: #008243;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  animation: badge-pulse 2s infinite;
-  letter-spacing: 0.5px;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-
-@keyframes badge-pulse {
-  0% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 242, 96, 0.4); }
-  50% { transform: scale(1.05); box-shadow: 0 4px 25px rgba(0, 242, 96, 0.6); }
-  100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 242, 96, 0.4); }
+  letter-spacing: -0.01em;
+  border: none;
 }
 
 .fab-button:active {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
-import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag, Eye, EyeOff } from 'lucide-react';
+import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag, Eye, EyeOff, Shield } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -505,15 +505,18 @@ function LoginPage({ login, signup }) {
   );
 }
 
-function ProfilePage({ user, logout, updateProfile, products, myProductLikes }) {
+function ProfilePage({ user, logout, updateProfile, products, myProductLikes, chatRooms = [] }) {
   const navigate = useNavigate();
+  const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.profile_name || '');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(user?.profile_image || '');
 
-  const wishlistProducts = products.filter(p => myProductLikes.includes(p.id));
-
   if (!user) return <Navigate to="/login" />;
+
+  const wishlistProducts = products.filter(p => myProductLikes.includes(p.id));
+  const sellingProducts = products.filter(p => String(p.seller_id) === String(user.id));
+  const buyingRooms = (chatRooms || []).filter(r => String(r.buyer_id) === String(user.id));
 
   const handleImageChange = (e) => {
     const selected = e.target.files[0];
@@ -531,6 +534,7 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes }) 
     if (file) formData.append('image', file);
 
     await updateProfile(formData);
+    setIsEditing(false);
     alert('Profile updated successfully!');
   };
 
@@ -538,70 +542,78 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes }) 
     <>
       <Header title="My Profile" />
       <main>
-        <div className="glass-card">
-          {user && user.role === 'admin' && (
-            <button 
-              onClick={() => navigate('/admin')} 
-              className="btn-primary" 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: '0.5rem', 
-                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', 
-                color: 'white', 
-                boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)', 
-                marginBottom: '1.5rem',
-                border: 'none'
-              }}
-            >
-              <Users size={20} /> [Commander] Admin Panel
-            </button>
-          )}
-          <form onSubmit={handleSave}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <input type="file" accept="image/*" id="profilePic" onChange={handleImageChange} style={{ display: 'none' }} />
-              <label htmlFor="profilePic" style={{ cursor: 'pointer', position: 'relative' }}>
-                {preview ? <img src={preview} className="profile-img" style={{ width: '80px', height: '80px' }} /> : <div className="profile-placeholder" style={{ width: '80px', height: '80px' }}><Camera size={32} /></div>}
-                <div style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--primary)', color: 'white', borderRadius: '50%', padding: '4px' }}><Camera size={14} /></div>
-              </label>
-            </div>
-            
-            <div className="form-group">
-              <label className="form-label">Nickname</label>
-              <input type="text" className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="Setup your nickname" required />
-            </div>
+        {isEditing ? (
+          <div className="glass-card">
+             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
+               <ArrowLeft size={24} onClick={() => setIsEditing(false)} style={{ cursor: 'pointer', marginRight: '1rem' }} />
+               <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Edit Profile</h2>
+             </div>
+             <form onSubmit={handleSave}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
+                <input type="file" accept="image/*" id="profilePic" onChange={handleImageChange} style={{ display: 'none' }} />
+                <label htmlFor="profilePic" style={{ cursor: 'pointer', position: 'relative' }}>
+                  {preview ? <img src={preview} className="profile-img" style={{ width: '100px', height: '100px' }} /> : <div className="profile-placeholder" style={{ width: '100px', height: '100px' }}><Camera size={40} /></div>}
+                  <div style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--primary)', color: 'white', borderRadius: '50%', padding: '6px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}><Camera size={16} /></div>
+                </label>
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">Nickname</label>
+                <input type="text" className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="Please set your nickname" required />
+              </div>
 
-            <button type="submit" className="btn-primary" style={{ marginBottom: '1.5rem' }}>Save Profile</button>
-          </form>
-
-          <div style={{ borderTop: '1px solid var(--border-color)', margin: '1.5rem 0' }}></div>
-
-          <button onClick={() => { logout(); navigate('/'); }} className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#E53E3E', boxShadow: 'none', marginBottom: '1.5rem' }}>
-            <LogOut size={20} /> Logout
-          </button>
-        </div>
-
-        <div style={{ marginTop: '2rem' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Heart size={20} color="var(--primary)" fill="var(--primary)" /> My Wishlist
-          </h2>
-          <div className="product-grid" style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}>
-             {wishlistProducts.length > 0 ? wishlistProducts.map(p => (
-               <Link to={`/product/${p.id}`} key={p.id} className="product-item" style={{ textDecoration: 'none', color: 'inherit' }}>
-                 {(p.images && p.images.length > 0) ? <img src={p.images[0]} className="product-image" alt={p.title} /> : <div className="product-image" style={{ background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Camera size={32} color="#ccc" /></div>}
-                 <div className="product-info">
-                   <div className="product-title">{p.title}</div>
-                   <div className="product-price">${Number(p.price).toFixed(2)}</div>
-                 </div>
-               </Link>
-             )) : (
-               <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', background: 'white', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                 No liked items yet.
-               </div>
-             )}
+              <button type="submit" className="btn-primary" style={{ marginTop: '1rem' }}>Done</button>
+            </form>
           </div>
-        </div>
+        ) : (
+          <div className="profile-dashboard">
+            <div className="profile-header">
+              {user.profile_image ? (
+                <img src={user.profile_image} className="profile-avatar-large" alt={user.profile_name} />
+              ) : (
+                <div className="profile-avatar-large" style={{ background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UserIcon size={48} color="#94A3B8" />
+                </div>
+              )}
+              <div className="profile-nickname-huge">{user.profile_name || 'Anonymous'}</div>
+              <button className="profile-edit-btn" onClick={() => setIsEditing(true)}>Edit Profile</button>
+            </div>
+
+            <div className="profile-stats-grid">
+              <div className="profile-stat-item">
+                <span className="profile-stat-count">{sellingProducts.length}</span>
+                <span className="profile-stat-label">Selling</span>
+              </div>
+              <div className="profile-stat-item">
+                <span className="profile-stat-count">{buyingRooms.length}</span>
+                <span className="profile-stat-label">Buying</span>
+              </div>
+              <div className="profile-stat-item">
+                <span className="profile-stat-count">{wishlistProducts.length}</span>
+                <span className="profile-stat-label">Wishlist</span>
+              </div>
+            </div>
+
+            <div className="profile-menu-container">
+              {user && user.role === 'admin' && (
+                <div className="profile-menu-item" onClick={() => navigate('/admin')}>
+                  <div className="profile-menu-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#D97706' }}><Shield size={18} /></div>
+                  <span className="profile-menu-label">Admin Panel</span>
+                  <ChevronRight size={18} className="profile-menu-arrow" />
+                </div>
+              )}
+              <div className="profile-menu-item" onClick={() => navigate('/community')}>
+                <div className="profile-menu-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6' }}><Globe size={18} /></div>
+                <span className="profile-menu-label">My Life Posts</span>
+                <ChevronRight size={18} className="profile-menu-arrow" />
+              </div>
+              <div className="profile-menu-item" onClick={() => { logout(); navigate('/'); }} style={{ color: '#E53E3E' }}>
+                <div className="profile-menu-icon" style={{ background: 'rgba(229, 62, 62, 0.1)', color: '#E53E3E' }}><LogOut size={18} /></div>
+                <span className="profile-menu-label">Logout</span>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </>
   );
@@ -1555,7 +1567,7 @@ function AppContent() {
         <Route path="/community/:id" element={<CommunityDetailPage posts={posts} myLikes={myLikes} toggleLike={toggleLike} addComment={addComment} user={user} />} />
         <Route path="/community/new" element={<NewPostPage addPost={addPost} user={user} />} />
         <Route path="/login" element={<LoginPage login={login} signup={signup} />} />
-        <Route path="/profile" element={<ProfilePage user={user} logout={logout} updateProfile={updateProfile} products={products} myProductLikes={myProductLikes} />} />
+        <Route path="/profile" element={<ProfilePage user={user} logout={logout} updateProfile={updateProfile} products={products} myProductLikes={myProductLikes} chatRooms={rooms} />} />
         <Route path="/admin" element={<AdminPage user={user} token={token} />} />
       </Routes>
       <BottomNav user={user} rooms={rooms} />

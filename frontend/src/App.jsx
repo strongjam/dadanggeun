@@ -814,21 +814,22 @@ function WishlistManagementPage({ user, products, myProductLikes, toggleProductL
   );
 }
 
+// ========== UTILITIES ==========
+const getTimeAgo = (dateStr) => {
+  if (!dateStr) return '';
+  const now = new Date();
+  const past = new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+  const diff = Math.floor((now - past) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
+  return past.toLocaleDateString();
+};
+
 function HomePage({ products, user }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('latest');
-
-  const getTimeAgo = (dateStr) => {
-    if (!dateStr) return '';
-    const now = new Date();
-    const past = new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
-    const diff = Math.floor((now - past) / 1000);
-    if (diff < 60) return 'Just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
-    return past.toLocaleDateString();
-  };
 
   if (!user) return <Navigate to="/login" />;
 
@@ -912,6 +913,7 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
   const navigate = useNavigate();
   const carouselRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   const product = products.find(p => p.id === parseInt(id));
   const [hasLiked, setHasLiked] = useState(myProductLikes && myProductLikes.includes(parseInt(id)));
@@ -944,8 +946,6 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
       setCurrentIndex(idx);
     }
   };
-
-  const [isZoomed, setIsZoomed] = useState(false);
 
   const scrollNext = () => {
     if (carouselRef.current) carouselRef.current.scrollBy({ left: carouselRef.current.clientWidth, behavior: 'smooth' });
@@ -1011,7 +1011,13 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
             </div>
           </div>
         </div>
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Saves ∙ {product.likes || 0}</div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          <span>{getTimeAgo(product.created_at)}</span>
+          <span>•</span>
+          <span>Views {product.views || 0}</span>
+          <span>•</span>
+          <span>Likes {product.likes || 0}</span>
+        </div>
         <p style={{ lineHeight: '1.6', color: 'var(--text-main)', whiteSpace: 'pre-wrap', fontSize: '1.05rem', minHeight: '100px' }}>{product.description}</p>
       </div>
       <div style={{ position: 'fixed', bottom: 0, width: '100%', maxWidth: '600px', background: 'white', padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50 }}>

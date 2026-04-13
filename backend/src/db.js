@@ -34,10 +34,15 @@ export const initDb = () => {
       description TEXT,
       price REAL NOT NULL,
       is_quick INTEGER DEFAULT 0,
+      views INTEGER DEFAULT 0,
       images TEXT, -- JSON array of URLs
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(seller_id) REFERENCES users(id)
     )`);
+
+    db.run(`ALTER TABLE products ADD COLUMN views INTEGER DEFAULT 0`, (err) => {
+      // Ignore if column exists
+    });
 
     db.run(`CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,6 +74,15 @@ export const initDb = () => {
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS product_likes (
+      product_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (product_id, user_id),
+      FOREIGN KEY(product_id) REFERENCES products(id),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS product_views (
       product_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

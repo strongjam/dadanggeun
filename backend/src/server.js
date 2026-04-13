@@ -138,7 +138,9 @@ app.get('/api/products', async (req, res) => {
   try {
     const products = await allQuery(`
       SELECT p.*, u.profile_name as seller_name, u.profile_image as seller_image,
-             (SELECT COUNT(*) FROM product_likes WHERE product_id = p.id) as likes
+             (SELECT COUNT(*) FROM product_likes WHERE product_id = p.id) as likes,
+             (SELECT COUNT(*) FROM chat_rooms WHERE product_id = p.id) as chats,
+             (SELECT COUNT(*) FROM product_views WHERE product_id = p.id) as views
       FROM products p 
       JOIN users u ON p.seller_id = u.id 
       ORDER BY p.created_at DESC
@@ -222,6 +224,15 @@ app.get('/api/products/likes', authenticateToken, async (req, res) => {
   try {
     const likes = await allQuery(`SELECT product_id FROM product_likes WHERE user_id = ?`, [req.user.id]);
     res.json(likes.map(l => l.product_id));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/products/:id/view', authenticateToken, async (req, res) => {
+  try {
+    await runQuery(`INSERT OR IGNORE INTO product_views (product_id, user_id) VALUES (?, ?)`, [req.params.id, req.user.id]);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
-import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag, Eye, EyeOff, Shield } from 'lucide-react';
+import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag, Eye, EyeOff, Shield, Sparkles, MoreHorizontal } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -579,22 +579,80 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes, ch
               <button className="profile-edit-btn" onClick={() => setIsEditing(true)}>Edit Profile</button>
             </div>
 
-            <div className="profile-stats-grid">
-              <div className="profile-stat-item">
-                <span className="profile-stat-count">{sellingProducts.length}</span>
-                <span className="profile-stat-label">Selling</span>
+            <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Selling Section */}
+              <div className="glass-card" style={{ padding: '1.25rem 1rem' }}>
+                <div className="profile-section-header" style={{ marginTop: 0 }}>
+                  <div className="profile-section-title">
+                    Selling <span className="profile-section-count">{sellingProducts.length}</span>
+                  </div>
+                  <div className="profile-section-link" onClick={() => navigate('/profile/sales')} style={{ cursor: 'pointer' }}><ChevronRight size={20} /></div>
+                </div>
+                
+                {sellingProducts.length > 0 ? (
+                  <div className="horizontal-scroll-row" style={{ marginTop: '0.5rem' }}>
+                    {sellingProducts.map(p => (
+                      <Link to={`/product/${p.id}`} key={p.id} className="mini-product-card">
+                        <div className="mini-product-image-container">
+                          {(p.images && p.images.length > 0) ? (
+                            <img src={p.images[0]} className="mini-product-image" alt={p.title} />
+                          ) : (
+                            <div className="mini-product-image" style={{ background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Camera size={24} color="#CBD5E0" /></div>
+                          )}
+                        </div>
+                        <div className="mini-product-info">
+                          <div className="mini-product-title">{p.title}</div>
+                          <div className="mini-product-price">${Number(p.price).toFixed(2)}</div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '1.5rem 1rem', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #E2E8F0', color: '#94A3B8' }}>
+                    <p style={{ fontSize: '0.8rem' }}>Empty listings</p>
+                  </div>
+                )}
               </div>
-              <div className="profile-stat-item">
-                <span className="profile-stat-count">{buyingRooms.length}</span>
-                <span className="profile-stat-label">Buying</span>
-              </div>
-              <div className="profile-stat-item">
-                <span className="profile-stat-count">{wishlistProducts.length}</span>
-                <span className="profile-stat-label">Wishlist</span>
+
+              {/* Wishlist Section */}
+              <div className="glass-card" style={{ padding: '1.25rem 1rem' }}>
+                <div className="profile-section-header" style={{ marginTop: 0 }}>
+                  <div className="profile-section-title">
+                    Wishlist <span className="profile-section-count">{wishlistProducts.length}</span>
+                  </div>
+                  <div className="profile-section-link" onClick={() => navigate('/profile/wishlist')} style={{ cursor: 'pointer' }}><ChevronRight size={20} /></div>
+                </div>
+                
+                {wishlistProducts.length > 0 ? (
+                  <div className="horizontal-scroll-row" style={{ marginTop: '0.5rem' }}>
+                    {wishlistProducts.map(p => (
+                      <Link to={`/product/${p.id}`} key={p.id} className="mini-product-card">
+                        <div className="mini-product-image-container">
+                          {(p.images && p.images.length > 0) ? (
+                            <img src={p.images[0]} className="mini-product-image" alt={p.title} />
+                          ) : (
+                            <div className="mini-product-image" style={{ background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Camera size={24} color="#CBD5E0" /></div>
+                          )}
+                        </div>
+                        <div className="mini-product-info">
+                          <div className="mini-product-title">{p.title}</div>
+                          <div className="mini-product-price">${Number(p.price).toFixed(2)}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: '4px' }}>
+                            Views {p.views || 0} • Likes {p.likes || 0}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '1.5rem 1rem', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #E2E8F0', color: '#94A3B8' }}>
+                    <p style={{ fontSize: '0.8rem' }}>No liked items</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="profile-menu-container">
+            <div className="profile-menu-container" style={{ marginTop: '1rem' }}>
               {user && user.role === 'admin' && (
                 <div className="profile-menu-item" onClick={() => navigate('/admin')}>
                   <div className="profile-menu-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#D97706' }}><Shield size={18} /></div>
@@ -619,9 +677,158 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes, ch
   );
 }
 
+function SalesManagementPage({ user, products }) {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('selling');
+  
+  const myProducts = products.filter(p => String(p.seller_id) === String(user?.id));
+  
+  // Simulation: Selling 1, Sold 0, Hidden 0 (for current demo)
+  const tabs = [
+    { id: 'selling', label: `Selling ${myProducts.length}` },
+    { id: 'sold', label: 'Sold 0' },
+    { id: 'hidden', label: 'Hidden 0' }
+  ];
+
+  if (!user) return <Navigate to="/login" />;
+
+  const handleBump = (title) => {
+    alert(`[${title}] Listing has been bumped to the top!`);
+  };
+
+  return (
+    <div className="management-container">
+      <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 0, background: 'white', zIndex: 100 }}>
+        <ArrowLeft size={24} onClick={() => navigate(-1)} style={{ cursor: 'pointer' }} />
+        <h2 style={{ fontSize: '1.25rem', fontWeight: '800', flex: 1 }}>My Sales</h2>
+      </div>
+      
+      <div className="management-top-actions">
+        <button className="mgmt-action-btn primary" onClick={() => navigate('/register')}>
+          <Edit2 size={18} /> Post
+        </button>
+      </div>
+
+      <div className="management-tab-bar" style={{ top: '65px' }}>
+        {tabs.map(tab => (
+          <div 
+            key={tab.id} 
+            className={`mgmt-tab ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </div>
+        ))}
+      </div>
+
+      <main style={{ paddingBottom: '80px' }}>
+        {activeTab === 'selling' && myProducts.length > 0 ? (
+          myProducts.map(p => (
+            <div key={p.id} className="management-item">
+              <div className="mgmt-item-main">
+                {p.images && p.images.length > 0 ? (
+                  <img src={p.images[0]} className="mgmt-item-img" alt={p.title} />
+                ) : (
+                  <div className="mgmt-item-img" style={{ background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Camera color="#CBD5E0" /></div>
+                )}
+                <div className="mgmt-item-info">
+                  <div className="mgmt-item-title">{p.title}</div>
+                  <div className="mgmt-item-sub">{new Date(p.created_at).toLocaleDateString()}</div>
+                  <div className="mgmt-item-price">${Number(p.price).toFixed(2)}</div>
+                </div>
+              </div>
+              
+              <div className="mgmt-item-stats">
+                <div className="mgmt-stat"><Eye size={14} /> {p.views || 0}</div>
+                <div className="mgmt-stat"><MessageCircle size={14} /> {p.chats || 0}</div>
+                <div className="mgmt-stat"><Heart size={14} /> {p.likes || 0}</div>
+              </div>
+
+              <div className="mgmt-item-footer">
+                <button className="mgmt-bump-btn" onClick={() => handleBump(p.title)}>Bump</button>
+                <div className="mgmt-more-btn"><MoreHorizontal size={20} /></div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div style={{ textAlign: 'center', padding: '5rem 1rem', color: '#94A3B8' }}>
+            <ShoppingBag size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+            <p>No items found.</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function WishlistManagementPage({ user, products, myProductLikes, toggleProductLike }) {
+  const navigate = useNavigate();
+  const likedProducts = products.filter(p => myProductLikes.includes(p.id));
+
+  if (!user) return <Navigate to="/login" />;
+
+  return (
+    <div className="management-container">
+      <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 0, background: 'white', zIndex: 100 }}>
+        <ArrowLeft size={24} onClick={() => navigate(-1)} style={{ cursor: 'pointer' }} />
+        <h2 style={{ fontSize: '1.25rem', fontWeight: '800', flex: 1 }}>Wishlist</h2>
+      </div>
+      
+      <main style={{ paddingBottom: '80px' }}>
+        {likedProducts.length > 0 ? (
+          likedProducts.map(p => (
+            <div key={p.id} className="management-item">
+              <div className="mgmt-item-main" onClick={() => navigate(`/product/${p.id}`)} style={{ cursor: 'pointer' }}>
+                {p.images && p.images.length > 0 ? (
+                  <img src={p.images[0]} className="mgmt-item-img" alt={p.title} />
+                ) : (
+                  <div className="mgmt-item-img" style={{ background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Camera color="#CBD5E0" /></div>
+                )}
+                <div className="mgmt-item-info">
+                  <div className="mgmt-item-title">{p.title}</div>
+                  <div className="mgmt-item-sub">{new Date(p.created_at).toLocaleDateString()} • {likedProducts.length} likes</div>
+                  <div className="mgmt-item-price">${Number(p.price).toFixed(2)}</div>
+                </div>
+              </div>
+              
+              <div className="mgmt-item-footer">
+                <button 
+                  className="mgmt-bump-btn" 
+                  style={{ background: '#FFF1F2', color: '#E11D48' }}
+                  onClick={() => toggleProductLike(p.id)}
+                >
+                  Unlike
+                </button>
+                <div className="mgmt-more-btn" onClick={() => navigate(`/product/${p.id}`)}><ChevronRight size={20} /></div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div style={{ textAlign: 'center', padding: '5rem 1rem', color: '#94A3B8' }}>
+            <Heart size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+            <p>No liked items yet.</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
 function HomePage({ products, user }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('latest');
+
+  const getTimeAgo = (dateStr) => {
+    if (!dateStr) return '';
+    const now = new Date();
+    const past = new Date(dateStr.endsWith('Z') ? dateStr : dateStr + 'Z');
+    const diff = Math.floor((now - past) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
+    return past.toLocaleDateString();
+  };
 
   if (!user) return <Navigate to="/login" />;
 
@@ -653,19 +860,40 @@ function HomePage({ products, user }) {
             const hasImage = p.images && p.images.length > 0;
             return (
               <Link to={`/product/${p.id}`} key={p.id} className="product-item" style={{ textDecoration: 'none', color: 'inherit' }}>
-                {hasImage ? <img src={p.images[0]} className="product-image" alt={p.title} /> : <div className="product-image" style={{ background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Camera size={32} color="#ccc" /></div>}
+                <div style={{ position: 'relative', width: '160px', height: '160px', flexShrink: 0, borderRadius: '12px', overflow: 'hidden' }}>
+                  {hasImage ? (
+                    <img src={p.images[0]} className="product-image" alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div className="product-image" style={{ width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Camera size={32} color="#ccc" />
+                    </div>
+                  )}
+                </div>
+                
                 <div className="product-info">
                   <div className="product-title">{p.title}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#A0AEC0', marginBottom: '0.25rem' }}>{getTimeAgo(p.created_at)}</div>
                   <div className="product-desc">{p.description}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto', justifyContent: 'space-between' }}>
                     <div className="product-price">
                       {p.is_free === 1 ? (
                         <span className="badge-free">Free</span>
                       ) : `$${Number(p.price).toFixed(2)}`}
                     </div>
+                    <div style={{ display: 'flex', gap: '8px', fontSize: '0.75rem', color: '#A0AEC0', fontWeight: 'bold' }}>
+                      {p.chats > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                          <MessageCircle size={14} /> {p.chats}
+                        </div>
+                      )}
+                      {p.likes > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                          <Heart size={14} /> {p.likes}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                {p.is_quick === 1 && p.is_free === 0 && <span className="badge-quick">⚡ Quick Sale</span>}
               </Link>
             )
           })}
@@ -679,7 +907,7 @@ function HomePage({ products, user }) {
   );
 }
 
-function ProductDetailPage({ products, deleteProduct, user, createRoom, myProductLikes, toggleProductLike }) {
+function ProductDetailPage({ products, deleteProduct, user, token, createRoom, myProductLikes, toggleProductLike }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const carouselRef = useRef(null);
@@ -690,7 +918,14 @@ function ProductDetailPage({ products, deleteProduct, user, createRoom, myProduc
 
   useEffect(() => {
     setHasLiked(myProductLikes && myProductLikes.includes(parseInt(id)));
-  }, [myProductLikes, id]);
+    // Increment view count (Unique only)
+    if (user && token) {
+      fetch(`/api/products/${id}/view`, { 
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).catch(console.error);
+    }
+  }, [myProductLikes, id, user, token]);
 
   const handleLike = () => {
     if (!user) return navigate('/login');
@@ -744,11 +979,7 @@ function ProductDetailPage({ products, deleteProduct, user, createRoom, myProduc
               </>
             )}
           </>
-        ) : (
-          <div style={{ width: '100%', height: '350px', background: '#F5F5F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Camera size={48} color="#A0A0A0" />
-          </div>
-        )}
+        ) : null}
       </header>
       <div style={{ padding: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -759,7 +990,6 @@ function ProductDetailPage({ products, deleteProduct, user, createRoom, myProduc
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <h1 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '0.5rem', lineHeight: '1.3' }}>{product.title}</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {product.is_quick === 1 && <span className="badge-quick" style={{ padding: '4px 8px' }}>⚡ Quick Sale</span>}
             <div onClick={handleLike} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: hasLiked ? 'rgba(255, 126, 54, 0.1)' : '#F7FAFC', borderRadius: '50%', width: '40px', height: '40px', transition: 'all 0.2s' }}>
               <Heart size={20} color={hasLiked ? "var(--primary)" : "var(--text-muted)"} fill={hasLiked ? "var(--primary)" : "none"} />
             </div>
@@ -815,7 +1045,6 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
   const [title, setTitle] = useState(existingProduct ? existingProduct.title : '');
   const [price, setPrice] = useState(existingProduct ? String(existingProduct.price) : '');
   const [description, setDescription] = useState(existingProduct ? existingProduct.description : '');
-  const [isQuick, setIsQuick] = useState(existingProduct ? existingProduct.is_quick === 1 : false);
   const [isFree, setIsFree] = useState(existingProduct ? existingProduct.is_free === 1 : false);
 
   if (!user) return <Navigate to="/login" />;
@@ -828,7 +1057,6 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
   };
 
   const removeImage = (index) => {
-    // If it's a new file (blob), remove from files array too
     const imgUrl = previews[index];
     if (imgUrl.startsWith('blob:')) {
       const blobIndex = previews.filter(p => p.startsWith('blob:')).indexOf(imgUrl);
@@ -843,10 +1071,8 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
     
     const formData = new FormData();
     formData.append('title', title);
-    const finalPrice = isFree ? 0 : (isQuick ? parseFloat(price) * 0.7 : parseFloat(price));
-    formData.append('price', finalPrice);
+    formData.append('price', isFree ? '0' : price);
     formData.append('description', description);
-    formData.append('isQuick', isQuick);
     formData.append('isFree', isFree);
     formData.append('existingImages', JSON.stringify(previews.filter(p => p.startsWith('/uploads'))));
     files.forEach(file => formData.append('images', file));
@@ -887,13 +1113,19 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
             </div>
             <div className="sale-type-toggle">
               <button type="button" className={`sale-type-btn ${!isFree ? 'active' : ''}`} onClick={() => setIsFree(false)}>For Sale</button>
-              <button type="button" className={`sale-type-btn ${isFree ? 'active' : ''}`} onClick={() => { setIsFree(true); setIsQuick(false); }}>Giveaway</button>
+              <button type="button" className={`sale-type-btn ${isFree ? 'active' : ''}`} onClick={() => setIsFree(true)}>Giveaway</button>
             </div>
 
             <div className="form-group"><label className="form-label">Title</label><input type="text" className="form-input" value={title} onChange={e => setTitle(e.target.value)} required /></div>
             
             {!isFree && (
-              <div className="form-group"><label className="form-label">Price ($)</label><input type="number" className="form-input" value={price} onChange={e => setPrice(e.target.value)} required /></div>
+              <div className="form-group">
+                <label className="form-label">Price ($)</label>
+                <div style={{ position: 'relative' }}>
+                  <input type="number" className="form-input" style={{ paddingLeft: '1.5rem' }} value={price} onChange={e => setPrice(e.target.value)} placeholder="0.00" required />
+                  <span style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: '#777' }}>$</span>
+                </div>
+              </div>
             )}
 
             {isFree && (
@@ -903,13 +1135,6 @@ function RegisterPage({ addProduct, updateProduct, user, existingProduct }) {
             )}
             
             <div className="form-group"><label className="form-label">Description</label><textarea className="form-input" rows="4" value={description} onChange={e => setDescription(e.target.value)}></textarea></div>
-            
-            {!isFree && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', cursor: 'pointer' }}>
-                <input type="checkbox" checked={isQuick} onChange={e => setIsQuick(e.target.checked)} style={{ width: '1.2rem', height: '1.2rem' }} />
-                <span style={{ fontWeight: '500' }}>Mark as "Quick Sale" (-30% applied)</span>
-              </label>
-            )}
             <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><Check size={20} /> {existingProduct ? "Update Listing" : "Post Listing"}</button>
           </form>
         </div>
@@ -1560,7 +1785,7 @@ function AppContent() {
         <Route path="/" element={<HomePage products={products} user={user} />} />
         <Route path="/chats" element={<ChatListPage rooms={rooms} user={user} />} />
         <Route path="/chat/:id" element={<ChatRoomPage messages={messages} joinRoom={joinRoom} sendMessage={sendMessage} user={user} />} />
-        <Route path="/product/:id" element={<ProductDetailPage products={products} myProductLikes={myProductLikes} toggleProductLike={toggleProductLike} user={user} deleteProduct={deleteProduct} createRoom={createRoom} />} />
+        <Route path="/product/:id" element={<ProductDetailPage products={products} deleteProduct={deleteProduct} user={user} token={token} createRoom={createRoom} myProductLikes={myProductLikes} toggleProductLike={toggleProductLike} />} />
         <Route path="/register" element={<RegisterPage addProduct={addProduct} user={user} />} />
         <Route path="/product/:id/edit" element={<EditProductWrapper products={products} updateProduct={updateProduct} user={user} />} />
         <Route path="/community" element={<CommunityPage posts={posts} />} />
@@ -1568,6 +1793,8 @@ function AppContent() {
         <Route path="/community/new" element={<NewPostPage addPost={addPost} user={user} />} />
         <Route path="/login" element={<LoginPage login={login} signup={signup} />} />
         <Route path="/profile" element={<ProfilePage user={user} logout={logout} updateProfile={updateProfile} products={products} myProductLikes={myProductLikes} chatRooms={rooms} />} />
+        <Route path="/profile/sales" element={<SalesManagementPage user={user} products={products} />} />
+        <Route path="/profile/wishlist" element={<WishlistManagementPage user={user} products={products} myProductLikes={myProductLikes} toggleProductLike={toggleProductLike} />} />
         <Route path="/admin" element={<AdminPage user={user} token={token} />} />
       </Routes>
       <BottomNav user={user} rooms={rooms} />

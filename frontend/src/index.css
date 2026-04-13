@@ -183,15 +183,15 @@ main {
 
 .badge-quick {
   position: absolute;
-  bottom: 0.75rem;
-  right: 0.75rem;
+  bottom: 0;
+  right: 0;
   background: linear-gradient(135deg, #E53E3E 0%, #C53030 100%);
   color: white;
   font-size: 0.7rem;
-  padding: 4px 10px;
-  border-radius: 20px;
+  padding: 6px 12px;
+  border-radius: 0;
   font-weight: 800;
-  box-shadow: 0 4px 10px rgba(229, 62, 62, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 5;
   display: flex;
   align-items: center;
@@ -794,6 +794,305 @@ main {
 
 .profile-menu-arrow {
   color: #CBD5E0;
+}
+
+/* Profile Dashboard Horizontal Scroll Redesign */
+.profile-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+  margin-bottom: 1rem;
+  margin-top: 2rem;
+}
+
+.profile-section-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1A202C;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-section-count {
+  color: #718096;
+  font-weight: 600;
+}
+
+.profile-section-link {
+  color: #CBD5E0;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.profile-section-link:hover {
+  color: #A0AEC0;
+}
+
+.horizontal-scroll-row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem;
+  margin: 0 -0.5rem;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.horizontal-scroll-row::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.mini-product-card {
+  flex: 0 0 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s;
+}
+
+.mini-product-card:active {
+  transform: scale(0.97);
+}
+
+.mini-product-image-container {
+  width: 140px;
+  height: 140px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #F1F5F9;
+  position: relative;
+  border: 1px solid #F1F5F9;
+}
+
+.mini-product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mini-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 2px;
+}
+
+.mini-product-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2D3748;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.mini-product-price {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.mini-product-location {
+  font-size: 0.75rem;
+  color: #A0AEC0;
+  font-weight: 500;
+}
+
+.sold-badge-mini {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(55, 65, 81, 0.8);
+  backdrop-filter: blur(4px);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  z-index: 1;
+}
+
+/* Sales Management Page Styles */
+.management-container {
+  min-height: 100vh;
+  background: white;
+}
+
+.management-top-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.mgmt-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.75rem;
+  border-radius: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.mgmt-action-btn.primary {
+  background: #FFF5F1;
+  color: var(--primary);
+}
+
+.mgmt-action-btn.secondary {
+  background: #F1F5F9;
+  color: #4A5568;
+}
+
+.management-tab-bar {
+  display: flex;
+  border-bottom: 1px solid #F1F5F9;
+  position: sticky;
+  top: 56px;
+  background: white;
+  z-index: 10;
+}
+
+.mgmt-tab {
+  flex: 1;
+  padding: 1rem 0;
+  text-align: center;
+  font-weight: 700;
+  color: #A0AEC0;
+  cursor: pointer;
+  position: relative;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.mgmt-tab.active {
+  color: #1A202C;
+}
+
+.mgmt-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 3px;
+  background: #1A202C;
+  border-radius: 3px 3px 0 0;
+}
+
+.management-item {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid #F1F5F9;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mgmt-item-main {
+  display: flex;
+  gap: 1rem;
+}
+
+.mgmt-item-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.mgmt-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mgmt-item-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1A202C;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mgmt-item-sub {
+  font-size: 0.8rem;
+  color: #A0AEC0;
+}
+
+.mgmt-item-price {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1A202C;
+  margin-top: 2px;
+}
+
+.mgmt-item-stats {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: #A0AEC0;
+  font-weight: 600;
+}
+
+.mgmt-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mgmt-item-footer {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.mgmt-bump-btn {
+  flex: 1;
+  background: #F1F5F9;
+  color: #1A202C;
+  border: none;
+  padding: 0.85rem;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mgmt-bump-btn:hover {
+  background: #E2E8F0;
+}
+
+.mgmt-more-btn {
+  width: 48px;
+  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #4A5568;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mgmt-more-btn:hover {
+  background: #E2E8F0;
 }
 
 @media (max-width: 600px) {

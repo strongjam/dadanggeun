@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
-import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag, Eye, EyeOff, Shield, Sparkles, MoreHorizontal } from 'lucide-react';
+import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag, Eye, EyeOff, Shield, Sparkles, MoreHorizontal, X } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -860,7 +860,7 @@ function HomePage({ products, user }) {
             const hasImage = p.images && p.images.length > 0;
             return (
               <Link to={`/product/${p.id}`} key={p.id} className="product-item" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div style={{ position: 'relative', width: '160px', height: '160px', flexShrink: 0, borderRadius: '12px', overflow: 'hidden' }}>
+                <div style={{ position: 'relative', width: '160px', height: '160px', flexShrink: 0, borderRadius: '12px', overflow: 'hidden', background: '#F8FAFC' }}>
                   {hasImage ? (
                     <img src={p.images[0]} className="product-image" alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
@@ -945,6 +945,8 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
     }
   };
 
+  const [isZoomed, setIsZoomed] = useState(false);
+
   const scrollNext = () => {
     if (carouselRef.current) carouselRef.current.scrollBy({ left: carouselRef.current.clientWidth, behavior: 'smooth' });
   };
@@ -960,8 +962,17 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
         </div>
         {images.length > 0 ? (
           <>
-            <div className="image-carousel" ref={carouselRef} onScroll={handleScroll} style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', width: '100%', height: '350px', scrollbarWidth: 'none' }}>
-              {images.map((img, idx) => <img key={idx} src={img} className="carousel-item" style={{ minWidth: '100%', height: '100%', objectFit: 'cover', scrollSnapAlign: 'start' }} />)}
+            <div className="image-carousel" ref={carouselRef} onScroll={handleScroll} style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', width: '100%', height: '350px', scrollbarWidth: 'none', background: '#F7FAFC' }}>
+              {images.map((img, idx) => (
+                <div key={idx} style={{ position: 'relative', minWidth: '100%', height: '100%', overflow: 'hidden', scrollSnapAlign: 'start' }}>
+                  <img 
+                    src={img} 
+                    className="carousel-item" 
+                    onClick={() => setIsZoomed(true)}
+                    style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', zIndex: 1, cursor: 'zoom-in' }} 
+                  />
+                </div>
+              ))}
             </div>
             {images.length > 1 && (
               <>
@@ -979,7 +990,12 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
               </>
             )}
           </>
-        ) : null}
+        ) : (
+          <div style={{ width: '100%', height: '350px', background: '#F1F5F9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#CBD5E0', gap: '1rem' }}>
+            <Camera size={48} />
+            <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>No image available</span>
+          </div>
+        )}
       </header>
       <div style={{ padding: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -1026,6 +1042,47 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
           }} className="btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', width: 'auto' }}>Chat</button>
         )}
       </div>
+
+      {/* Lightbox / Zoom Overlay */}
+      {isZoomed && (
+        <div className="zoom-overlay" onClick={() => setIsZoomed(false)}>
+          <button className="zoom-close" onClick={() => setIsZoomed(false)}>
+            <X size={28} />
+          </button>
+          
+          <div className="zoom-content" onClick={(e) => e.stopPropagation()}>
+            {images.length > 1 && currentIndex > 0 && (
+              <button 
+                className="zoom-nav-btn" 
+                style={{ left: '20px' }} 
+                onClick={(e) => { e.stopPropagation(); scrollPrev(); }}
+              >
+                <ChevronLeft size={32} />
+              </button>
+            )}
+            
+            <img 
+              src={images[currentIndex]} 
+              className="zoom-expanded-img" 
+              alt="Zoomed" 
+            />
+
+            {images.length > 1 && currentIndex < images.length - 1 && (
+              <button 
+                className="zoom-nav-btn" 
+                style={{ right: '20px' }} 
+                onClick={(e) => { e.stopPropagation(); scrollNext(); }}
+              >
+                <ChevronRight size={32} />
+              </button>
+            )}
+            
+            <div style={{ position: 'absolute', bottom: '30px', color: 'white', fontWeight: '600', opacity: 0.8, background: 'rgba(0,0,0,0.5)', padding: '5px 15px', borderRadius: '20px' }}>
+              {currentIndex + 1} / {images.length}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

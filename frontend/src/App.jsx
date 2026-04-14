@@ -1372,19 +1372,13 @@ function ChatListPage({ rooms, user, filter, setFilter }) {
     <>
       <Header />
       <main style={{ padding: 0 }}>
-        <div style={{ padding: '1rem', background: 'white', borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 'var(--header-height)', zIndex: 9, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ position: 'relative', width: '140px' }}>
-            <select 
-              value={filter} 
-              onChange={(e) => setFilter(e.target.value)}
-              className="chat-filter-select"
-            >
-              <option value="all">전체 대화</option>
-              <option value="selling">판매 대화</option>
-              <option value="buying">구매 대화</option>
-            </select>
+        <div style={{ background: 'white', borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 'var(--header-height)', zIndex: 9 }}>
+          <div className="management-tab-bar" style={{ position: 'relative', top: 0, borderBottom: 'none' }}>
+            <div className={`mgmt-tab ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All Chats</div>
+            <div className={`mgmt-tab ${filter === 'selling' ? 'active' : ''}`} onClick={() => setFilter('selling')}>Selling</div>
+            <div className={`mgmt-tab ${filter === 'buying' ? 'active' : ''}`} onClick={() => setFilter('buying')}>Buying</div>
           </div>
-          <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: '500' }}>
+          <div style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#94A3B8', fontWeight: '500', display: 'flex', justifyContent: 'flex-end', background: '#FAFAFA' }}>
             Total {filtered.length} rooms
           </div>
         </div>

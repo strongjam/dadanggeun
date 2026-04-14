@@ -205,6 +205,33 @@ app.delete('/api/products/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// ======================== PRODUCT BUMP ========================
+app.post('/api/products/:id/bump', authenticateToken, async (req, res) => {
+  try {
+    const p = await getQuery(`SELECT seller_id FROM products WHERE id = ?`, [req.params.id]);
+    if (!p || String(p.seller_id) !== String(req.user.id)) return res.status(403).json({error: 'Forbidden'});
+    
+    await runQuery(`UPDATE products SET created_at = CURRENT_TIMESTAMP WHERE id = ?`, [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ======================== PRODUCT STATUS ========================
+app.put('/api/products/:id/status', authenticateToken, async (req, res) => {
+  const { status } = req.body;
+  try {
+    const p = await getQuery(`SELECT seller_id FROM products WHERE id = ?`, [req.params.id]);
+    if (!p || String(p.seller_id) !== String(req.user.id)) return res.status(403).json({error: 'Forbidden'});
+    
+    await runQuery(`UPDATE products SET status = ? WHERE id = ?`, [status, req.params.id]);
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ======================== PRODUCT WISHLIST ========================
 app.post('/api/products/:id/like', authenticateToken, async (req, res) => {
   try {

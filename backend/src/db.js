@@ -44,6 +44,10 @@ export const initDb = () => {
       // Ignore if column exists
     });
 
+    db.run(`ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'selling'`, (err) => {
+      // Ignore if column exists
+    });
+
     db.run(`CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       author_id INTEGER NOT NULL,

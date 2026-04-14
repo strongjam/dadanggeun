@@ -1186,3 +1186,55 @@ main {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Bottom Action Sheet */
+.action-sheet-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s;
+}
+
+.action-sheet {
+  background: white;
+  width: 100%;
+  max-width: 600px;
+  border-radius: 20px 20px 0 0;
+  padding: 0 0 2rem 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.action-sheet-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1.25rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
+  color: #1a202c;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.action-sheet-btn:last-child {
+  border-bottom: none;
+}
+
+.action-sheet-btn.danger {
+  color: #e53e3e;
+}

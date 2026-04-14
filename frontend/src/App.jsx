@@ -115,7 +115,27 @@ function useProducts(token) {
     fetchMyProductLikes();
   };
 
-  return { products, myProductLikes, fetchProducts, addProduct, updateProduct, deleteProduct, toggleProductLike };
+  const bumpProduct = async (id) => {
+    const res = await fetch(`${API_BASE}/products/${id}/bump`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to bump product.');
+    fetchProducts();
+  };
+
+  const updateProductStatus = async (id, status) => {
+    const res = await fetch(`${API_BASE}/products/${id}/status`, {
+      method: 'PUT', headers: { 
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}` 
+      },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) throw new Error('Failed to update status.');
+    fetchProducts();
+  };
+
+  return { products, myProductLikes, fetchProducts, addProduct, updateProduct, deleteProduct, toggleProductLike, bumpProduct, updateProductStatus };
 }
 
 function useCommunity(token) {
@@ -677,9 +697,10 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes, ch
   );
 }
 
-function SalesManagementPage({ user, products }) {
+function SalesManagementPage({ user, products, bumpProduct, deleteProduct, updateProductStatus }) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('selling');
+  const [actionMenuProduct, setActionMenuProduct] = useState(null);
   
   const myProducts = products.filter(p => String(p.seller_id) === String(user?.id));
   
@@ -692,8 +713,33 @@ function SalesManagementPage({ user, products }) {
 
   if (!user) return <Navigate to="/login" />;
 
-  const handleBump = (title) => {
-    alert(`[${title}] Listing has been bumped to the top!`);
+  const handleBump = async (product) => {
+    try {
+      await bumpProduct(product.id);
+      alert(`[${product.title}] Listing has been bumped to the top!`);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const handleDelete = async (product) => {
+    if (window.confirm('Are you sure you want to delete this listing?')) {
+      try {
+        await deleteProduct(product.id);
+        setActionMenuProduct(null);
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+  };
+
+  const handleStatusUpdate = async (product, status) => {
+    try {
+      await updateProductStatus(product.id, status);
+      setActionMenuProduct(null);
+    } catch(e) {
+      alert(e.message);
+    }
   };
 
   return (
@@ -703,13 +749,7 @@ function SalesManagementPage({ user, products }) {
         <h2 style={{ fontSize: '1.25rem', fontWeight: '800', flex: 1 }}>My Sales</h2>
       </div>
       
-      <div className="management-top-actions">
-        <button className="mgmt-action-btn primary" onClick={() => navigate('/register')}>
-          <Edit2 size={18} /> Post
-        </button>
-      </div>
-
-      <div className="management-tab-bar" style={{ top: '65px' }}>
+      <div className="management-tab-bar" style={{ top: '57px' }}>
         {tabs.map(tab => (
           <div 
             key={tab.id} 
@@ -745,8 +785,8 @@ function SalesManagementPage({ user, products }) {
               </div>
 
               <div className="mgmt-item-footer">
-                <button className="mgmt-bump-btn" onClick={() => handleBump(p.title)}>Bump</button>
-                <div className="mgmt-more-btn"><MoreHorizontal size={20} /></div>
+                <button className="mgmt-bump-btn" onClick={() => handleBump(p)}>Bump</button>
+                <div className="mgmt-more-btn" onClick={() => setActionMenuProduct(p)}><MoreHorizontal size={20} /></div>
               </div>
             </div>
           ))
@@ -757,6 +797,18 @@ function SalesManagementPage({ user, products }) {
           </div>
         )}
       </main>
+
+      {/* Action Sheet Menu */}
+      {actionMenuProduct && (
+        <div className="action-sheet-overlay" onClick={() => setActionMenuProduct(null)}>
+          <div className="action-sheet" onClick={(e) => e.stopPropagation()}>
+            <button className="action-sheet-btn" onClick={() => handleStatusUpdate(actionMenuProduct, 'reserved')}>Change to Reserved</button>
+            <button className="action-sheet-btn" onClick={() => handleStatusUpdate(actionMenuProduct, 'sold')}>Change to Sold</button>
+            <button className="action-sheet-btn" onClick={() => navigate(`/product/${actionMenuProduct.id}/edit`)}>Edit Post</button>
+            <button className="action-sheet-btn danger" onClick={() => handleDelete(actionMenuProduct)}>Delete</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -869,6 +921,16 @@ function HomePage({ products, user }) {
                       <Camera size={32} color="#ccc" />
                     </div>
                   )}
+                  {p.status === 'reserved' && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.2rem', backdropFilter: 'blur(2px)' }}>
+                      Reserved
+                    </div>
+                  )}
+                  {p.status === 'sold' && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.2rem', backdropFilter: 'blur(2px)' }}>
+                      Sold Out
+                    </div>
+                  )}
                 </div>
                 
                 <div className="product-info">
@@ -971,6 +1033,16 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
                     onClick={() => setIsZoomed(true)}
                     style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', zIndex: 1, cursor: 'zoom-in' }} 
                   />
+                  {product.status === 'reserved' && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.5rem', backdropFilter: 'blur(2px)', zIndex: 2, pointerEvents: 'none' }}>
+                      Reserved
+                    </div>
+                  )}
+                  {product.status === 'sold' && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.5rem', backdropFilter: 'blur(2px)', zIndex: 2, pointerEvents: 'none' }}>
+                      Sold Out
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -991,9 +1063,19 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
             )}
           </>
         ) : (
-          <div style={{ width: '100%', height: '350px', background: '#F1F5F9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#CBD5E0', gap: '1rem' }}>
+          <div style={{ position: 'relative', width: '100%', height: '350px', background: '#F1F5F9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#CBD5E0', gap: '1rem', overflow: 'hidden' }}>
             <Camera size={48} />
             <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>No image available</span>
+            {product.status === 'reserved' && (
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.5rem', backdropFilter: 'blur(2px)', zIndex: 2 }}>
+                Reserved
+              </div>
+            )}
+            {product.status === 'sold' && (
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.5rem', backdropFilter: 'blur(2px)', zIndex: 2 }}>
+                Sold Out
+              </div>
+            )}
           </div>
         )}
       </header>
@@ -1038,6 +1120,8 @@ function ProductDetailPage({ products, deleteProduct, user, token, createRoom, m
               }
             }} className="btn-primary" style={{ background: '#E53E3E', boxShadow: 'none', padding: '0.75rem 1.2rem', width: 'auto' }}>Delete</button>
           </div>
+        ) : product.status === 'sold' ? (
+          <button disabled className="btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', width: 'auto', background: '#CBD5E0', cursor: 'not-allowed', border: 'none', boxShadow: 'none' }}>Sold Out</button>
         ) : (
           <button onClick={async () => {
             if (!user) return navigate('/login');
@@ -1816,7 +1900,7 @@ function AdminPage({ user, token }) {
 // ========== ROOT ==========
 function AppContent() {
   const { user, token, loading, login, signup, logout, updateProfile } = useAuth();
-  const { products, myProductLikes, addProduct, updateProduct, deleteProduct, toggleProductLike } = useProducts(token);
+  const { products, myProductLikes, addProduct, updateProduct, deleteProduct, toggleProductLike, bumpProduct, updateProductStatus } = useProducts(token);
   const { posts, myLikes, addPost, toggleLike, addComment } = useCommunity(token);
   const { rooms, messages, createRoom, joinRoom, sendMessage, notification, setNotification } = useChat(token, user);
   
@@ -1850,7 +1934,7 @@ function AppContent() {
         <Route path="/community/new" element={<NewPostPage addPost={addPost} user={user} />} />
         <Route path="/login" element={<LoginPage login={login} signup={signup} />} />
         <Route path="/profile" element={<ProfilePage user={user} logout={logout} updateProfile={updateProfile} products={products} myProductLikes={myProductLikes} chatRooms={rooms} />} />
-        <Route path="/profile/sales" element={<SalesManagementPage user={user} products={products} />} />
+        <Route path="/profile/sales" element={<SalesManagementPage user={user} products={products} bumpProduct={bumpProduct} deleteProduct={deleteProduct} updateProductStatus={updateProductStatus} />} />
         <Route path="/profile/wishlist" element={<WishlistManagementPage user={user} products={products} myProductLikes={myProductLikes} toggleProductLike={toggleProductLike} />} />
         <Route path="/admin" element={<AdminPage user={user} token={token} />} />
       </Routes>

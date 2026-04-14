@@ -1358,9 +1358,8 @@ function NewPostPage({ addPost, user }) {
 }
 
 // ========== CHATS ==========
-function ChatListPage({ rooms, user }) {
+function ChatListPage({ rooms, user, filter, setFilter }) {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState('all');
   if (!user) return <Navigate to="/login" />;
 
   const filtered = rooms.filter(r => {
@@ -1830,6 +1829,7 @@ function AppContent() {
   usePushNotifications(token, user);
 
   const navigate = useNavigate();
+  const [chatFilter, setChatFilter] = useState('all');
 
   if (loading) return <div>Loading...</div>;
 
@@ -1846,7 +1846,7 @@ function AppContent() {
       )}
       <Routes>
         <Route path="/" element={<HomePage products={products} user={user} />} />
-        <Route path="/chats" element={<ChatListPage rooms={rooms} user={user} />} />
+        <Route path="/chats" element={<ChatListPage rooms={rooms} user={user} filter={chatFilter} setFilter={setChatFilter} />} />
         <Route path="/chat/:id" element={<ChatRoomPage messages={messages} joinRoom={joinRoom} sendMessage={sendMessage} user={user} />} />
         <Route path="/product/:id" element={<ProductDetailPage products={products} deleteProduct={deleteProduct} user={user} token={token} createRoom={createRoom} myProductLikes={myProductLikes} toggleProductLike={toggleProductLike} />} />
         <Route path="/register" element={<RegisterPage addProduct={addProduct} user={user} />} />

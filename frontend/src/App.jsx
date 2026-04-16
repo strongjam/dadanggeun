@@ -587,7 +587,7 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes, ch
           </div>
         ) : (
           <div className="profile-dashboard">
-            <div className="profile-header">
+            <div className="glass-card" style={{ padding: '2.5rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem', border: '1px solid #F1F5F9' }}>
               {user.profile_image ? (
                 <img src={user.profile_image} className="profile-avatar-large" alt={user.profile_name} />
               ) : (
@@ -702,14 +702,19 @@ function SalesManagementPage({ user, products, bumpProduct, deleteProduct, updat
   const [activeTab, setActiveTab] = useState('selling');
   const [actionMenuProduct, setActionMenuProduct] = useState(null);
   
-  const myProducts = products.filter(p => String(p.seller_id) === String(user?.id));
-  
-  // Simulation: Selling 1, Sold 0, Hidden 0 (for current demo)
+  const myProducts = products
+    .filter(p => String(p.seller_id) === String(user?.id))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const sellingList = myProducts.filter(p => p.status === 'selling' || p.status === 'reserved' || !p.status);
+  const soldList = myProducts.filter(p => p.status === 'sold');
+
   const tabs = [
-    { id: 'selling', label: `Selling ${myProducts.length}` },
-    { id: 'sold', label: 'Sold 0' },
-    { id: 'hidden', label: 'Hidden 0' }
+    { id: 'selling', label: `Selling ${sellingList.length}` },
+    { id: 'sold', label: `Sold ${soldList.length}` }
   ];
+
+  const filteredList = activeTab === 'selling' ? sellingList : soldList;
 
   if (!user) return <Navigate to="/login" />;
 
@@ -762,8 +767,8 @@ function SalesManagementPage({ user, products, bumpProduct, deleteProduct, updat
       </div>
 
       <main style={{ paddingBottom: '80px' }}>
-        {activeTab === 'selling' && myProducts.length > 0 ? (
-          myProducts.map(p => (
+        {filteredList.length > 0 ? (
+          filteredList.map(p => (
             <div key={p.id} className="management-item">
               <div className="mgmt-item-main">
                 {p.images && p.images.length > 0 ? (

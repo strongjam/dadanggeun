@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
-import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag, Eye, EyeOff, Shield, Sparkles, MoreHorizontal, X } from 'lucide-react';
+import { Home, Search, MessageCircle, User as UserIcon, PlusCircle, Camera, Check, ArrowLeft, LogOut, Users, Heart, Send, ChevronLeft, ChevronRight, Edit2, Globe, ShoppingBag, Eye, EyeOff, Shield, Sparkles, MoreHorizontal, X, Calendar } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const API_BASE = '/api';
@@ -171,6 +171,25 @@ function useCommunity(token) {
     if (res.ok) fetchPosts();
   };
 
+  const updatePost = async (id, postData) => {
+    const res = await fetch(`${API_BASE}/community/posts/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(postData)
+    });
+    if (res.ok) fetchPosts();
+  };
+
+  const deletePost = async (id) => {
+    const res = await fetch(`${API_BASE}/community/posts/${id}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.ok) {
+      fetchPosts();
+    } else {
+      const err = await res.json().catch(() => ({ error: 'Server error' }));
+      alert(`Delete failed: ${err.error}`);
+    }
+  };
+
   const toggleLike = async (id) => {
     await fetch(`${API_BASE}/community/posts/${id}/like`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
     fetchPosts();
@@ -184,7 +203,7 @@ function useCommunity(token) {
     if (res.ok) fetchPosts();
   };
 
-  return { posts, myLikes, fetchPosts, addPost, toggleLike, addComment };
+  return { posts, myLikes, fetchPosts, addPost, updatePost, deletePost, toggleLike, addComment };
 }
 
 function useChat(token, user) {
@@ -372,7 +391,7 @@ function Header({ title, rightContent, showBack }) {
             Dadang_geun
           </Link>
         )}
-        {title && showBack && <div style={{ fontSize: '1.2rem', fontWeight: '700' }}>{title}</div>}
+        {title && showBack && !["My Timeline", "New Post", "Edit Post"].includes(title) && <div style={{ fontSize: '1.2rem', fontWeight: '700' }}>{title}</div>}
       </div>
       <div style={{fontWeight: '600', display: 'flex', alignItems: 'center', gap: '1rem'}}>
         {rightContent}
@@ -596,6 +615,9 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes, ch
                 </div>
               )}
               <div className="profile-nickname-huge">{user.profile_name || 'Anonymous'}</div>
+              <div style={{ fontSize: '0.85rem', color: '#94A3B8', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+                Join Date: {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+              </div>
               <button className="profile-edit-btn" onClick={() => setIsEditing(true)}>Edit Profile</button>
             </div>
 
@@ -680,7 +702,7 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes, ch
                   <ChevronRight size={18} className="profile-menu-arrow" />
                 </div>
               )}
-              <div className="profile-menu-item" onClick={() => navigate('/community')}>
+              <div className="profile-menu-item" onClick={() => navigate('/profile/timeline')}>
                 <div className="profile-menu-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6' }}><Globe size={18} /></div>
                 <span className="profile-menu-label">My Life Posts</span>
                 <ChevronRight size={18} className="profile-menu-arrow" />
@@ -1310,13 +1332,22 @@ function CommunityPage({ posts }) {
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {filtered.map(p => (
-            <Link to={`/community/${p.id}`} key={p.id} className="glass-card" style={{ textDecoration: 'none', color: 'inherit', marginBottom: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--primary)', background: 'rgba(255,126,54,0.1)', padding: '2px 8px', borderRadius: '4px' }}>{p.category}</span>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{p.author.name || 'Anonymous'}</span>
+            <Link to={`/community/${p.id}`} key={p.id} className="glass-card" style={{ textDecoration: 'none', color: 'inherit', marginBottom: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--primary)', background: 'rgba(255,126,54,0.1)', padding: '2px 8px', borderRadius: '4px' }}>{p.category}</span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{p.author.name || 'Anonymous'}</span>
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{p.title}</h3>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.5' }}>
+                    {p.content.replace(/<[^>]*>?/gm, '')}
+                  </p>
+                </div>
+                {(p.images?.[0] || p.content.match(/<img[^>]+src="([^">]+)"/)?.[1]) && (
+                  <img src={p.images?.[0] || p.content.match(/<img[^>]+src="([^">]+)"/)?.[1]} style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover' }} />
+                )}
               </div>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>{p.title}</h3>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.content}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Heart size={16} /> {p.likes}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><MessageCircle size={16} /> {p.comments ? p.comments.length : 0}</div>
@@ -1333,7 +1364,7 @@ function CommunityPage({ posts }) {
   );
 }
 
-function CommunityDetailPage({ posts, myLikes, toggleLike, addComment, user }) {
+function CommunityDetailPage({ posts, myLikes, toggleLike, addComment, user, deletePost }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [commentText, setCommentText] = useState('');
@@ -1369,13 +1400,34 @@ function CommunityDetailPage({ posts, myLikes, toggleLike, addComment, user }) {
         <span style={{ fontWeight: '600' }}></span>
       </header>
       <main style={{ padding: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-          {post.author.image ? <img src={post.author.image} className="profile-img" style={{ width: '40px', height: '40px' }} /> : <div className="profile-placeholder" style={{ width: '40px', height: '40px' }}><UserIcon size={20} /></div>}
-          <div><div style={{ fontWeight: '600', fontSize: '0.95rem' }}>{post.author.name || 'Anonymous'}</div></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {post.author.image ? <img src={post.author.image} className="profile-img" style={{ width: '40px', height: '40px' }} /> : <div className="profile-placeholder" style={{ width: '40px', height: '40px' }}><UserIcon size={20} /></div>}
+            <div><div style={{ fontWeight: '600', fontSize: '0.95rem' }}>{post.author.name || 'Anonymous'}</div></div>
+          </div>
+          {user && String(user.id) === String(post.author_id) && (
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => navigate(`/community/${post.id}/edit`)} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Edit2 size={16} /> Edit
+              </button>
+              <button onClick={() => { if(confirm('Delete this post?')) { deletePost(post.id); navigate('/community'); } }} style={{ border: 'none', background: '#FFF1F2', color: '#E11D48', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <X size={16} /> Delete
+              </button>
+            </div>
+          )}
         </div>
         <span style={{ fontSize: '0.8rem', color: 'var(--primary)', background: 'rgba(255,126,54,0.1)', padding: '2px 8px', borderRadius: '4px' }}>{post.category}</span>
         <h1 style={{ fontSize: '1.3rem', marginTop: '0.5rem', marginBottom: '1rem', lineHeight: '1.4' }}>{post.title}</h1>
-        <p style={{ lineHeight: '1.6', fontSize: '1.05rem', whiteSpace: 'pre-wrap' }}>{post.content}</p>
+        
+        {post.images && post.images.length > 0 && !post.content.includes('<img') && (
+          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '1.5rem', paddingBottom: '10px' }}>
+            {post.images.map((img, idx) => (
+              <img key={idx} src={img} style={{ height: '200px', borderRadius: '16px', objectFit: 'cover' }} />
+            ))}
+          </div>
+        )}
+
+        <div style={{ lineHeight: '1.6', fontSize: '1.05rem' }} dangerouslySetInnerHTML={{ __html: post.content }}></div>
         
         <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
           <button onClick={handleLike} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: hasLiked ? 'rgba(255, 126, 54, 0.1)' : 'none', border: `1px solid ${hasLiked ? 'var(--primary)' : 'var(--border-color)'}`, padding: '0.5rem 1rem', borderRadius: '20px', cursor: 'pointer', color: hasLiked ? 'var(--primary)' : 'var(--text-main)', fontWeight: '500', transition: 'all 0.2s ease' }}>
@@ -1405,40 +1457,118 @@ function CommunityDetailPage({ posts, myLikes, toggleLike, addComment, user }) {
   );
 }
 
-function NewPostPage({ addPost, user }) {
+function NewPostPage({ addPost, user, posts, updatePost, token }) {
+  const { id: editId } = useParams();
+  const existingPost = editId ? posts.find(p => String(p.id) === String(editId)) : null;
+
   const navigate = useNavigate();
-  const [category, setCategory] = useState('Free Talk');
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState(existingPost?.title || '');
+  const [category, setCategory] = useState(existingPost?.category || 'Free Talk');
+  
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    if (existingPost && editorRef.current) {
+      let initialContent = existingPost.content;
+      // If legacy post has separate images, append them
+      if (existingPost.images && existingPost.images.length > 0 && !initialContent.includes('<img')) {
+        const imgHtml = existingPost.images.map(url => `<img src="${url}" style="max-width:100%; border-radius:12px; margin-top:10px;" />`).join('');
+        initialContent += `<br/>` + imgHtml;
+      }
+      editorRef.current.innerHTML = initialContent;
+    }
+  }, [existingPost]);
 
   if (!user) return <Navigate to="/login" />;
 
+  const handlePaste = async (e) => {
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (let index in items) {
+      const item = items[index];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        
+        // Upload image immediately
+        const formData = new FormData();
+        formData.append('image', file);
+        try {
+          const res = await fetch(`${API_BASE}/community/upload`, {
+            method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData
+          });
+          const data = await res.json();
+          if (data.url) {
+            // Insert image at cursor
+            const imgHtml = `<img src="${data.url}" style="max-width: 100%; border-radius: 12px; display: block; margin: 10px 0;" />`;
+            document.execCommand('insertHTML', false, imgHtml);
+          }
+        } catch (err) {
+          console.error("Paste upload failed", err);
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !content) return;
-    await addPost({ title, content, category });
+    const contentHtml = editorRef.current.innerHTML;
+    const postData = { title, content: contentHtml, category };
+    
+    if (existingPost) {
+      await updatePost(existingPost.id, postData);
+    } else {
+      await addPost(postData);
+    }
     navigate('/community');
   };
 
   return (
     <>
-      <header style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem', background: 'white', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, zIndex: 10 }}>
-        <ArrowLeft size={24} onClick={() => navigate(-1)} style={{ cursor: 'pointer', marginRight: '1rem' }} />
-        <span style={{ fontWeight: '600', fontSize: '1.2rem' }}></span>
-      </header>
-      <main>
-        <div className="glass-card">
+      <Header title={existingPost ? "Edit Post" : "New Post"} showBack={true} />
+      <main style={{ paddingBottom: '100px' }}>
+        <div className="glass-card" style={{ background: 'white' }}>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label">Category</label>
-              <select className="form-input" value={category} onChange={e => setCategory(e.target.value)}>
-                <option value="Free Talk">Free Talk</option>
-                <option value="Q&A">Q&A</option>
-              </select>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {['Free Talk', 'Q&A'].map(cat => (
+                  <div key={cat} onClick={() => setCategory(cat)} className={`category-pill ${category === cat ? 'active' : ''}`} style={{ cursor: 'pointer' }}>{cat}</div>
+                ))}
+              </div>
             </div>
-            <div className="form-group"><label className="form-label">Title</label><input type="text" className="form-input" value={title} onChange={e => setTitle(e.target.value)} required /></div>
-            <div className="form-group"><label className="form-label">Content</label><textarea className="form-input" rows="6" value={content} onChange={e => setContent(e.target.value)} required></textarea></div>
-            <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><Check size={20} /> Post</button>
+
+            <div className="form-group">
+              <input type="text" className="form-input" style={{ border: 'none', borderBottom: '1px solid #F1F5F9', borderRadius: 0, padding: '10px 0', fontSize: '1.2rem', fontWeight: 'bold' }} value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter title" required />
+            </div>
+            
+            <div className="form-group">
+              <div 
+                ref={editorRef}
+                contentEditable={true}
+                onPaste={handlePaste}
+                style={{ 
+                  minHeight: '300px', 
+                  padding: '10px 0', 
+                  outline: 'none', 
+                  fontSize: '1rem', 
+                  lineHeight: '1.6', 
+                  color: 'var(--text-main)',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word'
+                }} 
+                data-placeholder="Share your thoughts... Paste images here directly!"
+              />
+              <style dangerouslySetInnerHTML={{ __html: `
+                [contentEditable=true]:empty:before {
+                  content: attr(data-placeholder);
+                  color: #94A3B8;
+                  cursor: text;
+                }
+              `}} />
+            </div>
+            
+            <button type="submit" className="btn-primary" style={{ marginTop: '2rem', width: '100%', maxWidth: 'none' }}>
+              {existingPost ? "Update Post" : "Post"}
+            </button>
           </form>
         </div>
       </main>
@@ -1906,7 +2036,7 @@ function AdminPage({ user, token }) {
 function AppContent() {
   const { user, token, loading, login, signup, logout, updateProfile } = useAuth();
   const { products, myProductLikes, addProduct, updateProduct, deleteProduct, toggleProductLike, bumpProduct, updateProductStatus } = useProducts(token);
-  const { posts, myLikes, addPost, toggleLike, addComment } = useCommunity(token);
+  const { posts, myLikes, addPost, updatePost, deletePost, toggleLike, addComment } = useCommunity(token);
   const { rooms, messages, createRoom, joinRoom, sendMessage, notification, setNotification } = useChat(token, user);
   
   usePushNotifications(token, user);
@@ -1935,12 +2065,14 @@ function AppContent() {
         <Route path="/register" element={<RegisterPage addProduct={addProduct} user={user} />} />
         <Route path="/product/:id/edit" element={<EditProductWrapper products={products} updateProduct={updateProduct} user={user} />} />
         <Route path="/community" element={<CommunityPage posts={posts} />} />
-        <Route path="/community/:id" element={<CommunityDetailPage posts={posts} myLikes={myLikes} toggleLike={toggleLike} addComment={addComment} user={user} />} />
-        <Route path="/community/new" element={<NewPostPage addPost={addPost} user={user} />} />
+        <Route path="/community/:id" element={<CommunityDetailPage posts={posts} myLikes={myLikes} toggleLike={toggleLike} addComment={addComment} user={user} deletePost={deletePost} />} />
+        <Route path="/community/new" element={<NewPostPage addPost={addPost} user={user} token={token} />} />
+        <Route path="/community/:id/edit" element={<NewPostPage updatePost={updatePost} user={user} posts={posts} token={token} />} />
         <Route path="/login" element={<LoginPage login={login} signup={signup} />} />
         <Route path="/profile" element={<ProfilePage user={user} logout={logout} updateProfile={updateProfile} products={products} myProductLikes={myProductLikes} chatRooms={rooms} />} />
         <Route path="/profile/sales" element={<SalesManagementPage user={user} products={products} bumpProduct={bumpProduct} deleteProduct={deleteProduct} updateProductStatus={updateProductStatus} />} />
         <Route path="/profile/wishlist" element={<WishlistManagementPage user={user} products={products} myProductLikes={myProductLikes} toggleProductLike={toggleProductLike} />} />
+        <Route path="/profile/timeline" element={<MyTimelinePage user={user} posts={posts} />} />
         <Route path="/admin" element={<AdminPage user={user} token={token} />} />
       </Routes>
       <BottomNav user={user} rooms={rooms} />
@@ -1953,6 +2085,90 @@ function App() {
     <BrowserRouter>
       <AppContent />
     </BrowserRouter>
+  );
+}
+
+function MyTimelinePage({ user, posts }) {
+  const navigate = useNavigate();
+  const myPosts = posts
+    .filter(p => String(p.author_id) === String(user?.id))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  if (!user) return <Navigate to="/login" />;
+
+  return (
+    <>
+      <Header title="My Timeline" showBack />
+      <main style={{ padding: '1rem', paddingBottom: '100px' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1E293B' }}>My Life Records</h2>
+          <p style={{ color: '#64748B', fontSize: '0.9rem' }}>Precious moments shared with Dadanggeun.</p>
+        </div>
+
+        {myPosts.length > 0 ? (
+          <div style={{ position: 'relative', paddingLeft: '30px' }}>
+            {/* Vertical Line */}
+            <div style={{ position: 'absolute', left: '10px', top: '10px', bottom: '10px', width: '2px', background: 'linear-gradient(to bottom, var(--primary), #E2E8F0)', borderRadius: '1px' }}></div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              {myPosts.map((post, idx) => (
+                <div key={post.id} className="timeline-item" style={{ position: 'relative', animation: `slideIn 0.3s ease forwards ${idx * 0.1}s`, opacity: 0 }}>
+                  {/* Timeline Dot */}
+                  <div style={{ position: 'absolute', left: '-25px', top: '8px', width: '12px', height: '12px', borderRadius: '50%', background: 'white', border: '3px solid var(--primary)', zIndex: 2 }}></div>
+                  
+                  <div className="glass-card" onClick={() => navigate(`/community/${post.id}`)} style={{ padding: '1.25rem', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid #F1F5F9', overflow: 'hidden' }}>
+                      {post.images && post.images.length > 0 && !post.content.includes('<img') && (
+                        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '1.5rem', paddingBottom: '10px' }}>
+                          {post.images.map((img, idx) => (
+                            <img key={idx} src={img} style={{ height: '200px', borderRadius: '16px', objectFit: 'cover' }} />
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Calendar size={12} /> {new Date(post.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                          </div>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#1E293B', marginBottom: '0.75rem' }}>{post.title}</h3>
+                          <p style={{ fontSize: '0.9rem', color: '#475569', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.5' }}>
+                            {post.content.replace(/<[^>]*>?/gm, '')}
+                          </p>
+                        </div>
+                        {(post.images?.[0] || post.content.match(/<img[^>]+src="([^">]+)"/)?.[1]) && (
+                          <img src={post.images?.[0] || post.content.match(/<img[^>]+src="([^">]+)"/)?.[1]} style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover' }} />
+                        )}
+                      </div>
+                    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8rem', color: '#94A3B8' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Heart size={14} /> {post.likes || 0}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MessageCircle size={14} /> {post.comments?.length || 0}</span>
+                      <span style={{ marginLeft: 'auto', background: 'var(--primary)10', color: 'var(--primary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>{post.category}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '5rem 1rem', color: '#94A3B8' }}>
+            <Sparkles size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+            <p>No life posts found yet.</p>
+            <button className="btn-primary" onClick={() => navigate('/community/new')} style={{ marginTop: '1.5rem', width: 'auto', padding: '0.75rem 2rem' }}>Share Your First Moment</button>
+          </div>
+        )}
+      </main>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .timeline-item:hover .glass-card {
+          transform: translateY(-4px);
+          box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+      `}} />
+    </>
   );
 }
 

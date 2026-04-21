@@ -109,7 +109,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const user = await getQuery(`SELECT id, login_id, profile_name, profile_image, role FROM users WHERE id = ?`, [req.user.id]);
+    const user = await getQuery(`SELECT id, login_id, profile_name, profile_image, role, created_at FROM users WHERE id = ?`, [req.user.id]);
     res.json({ user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -277,6 +277,7 @@ app.get('/api/community/posts', async (req, res) => {
     
     // Attach comments count and format
     for (let p of posts) {
+      p.images = JSON.parse(p.images || '[]');
       p.author = { name: p.author_name, image: p.author_image };
       p.comments = await allQuery(`
         SELECT c.*, u.profile_name as author_name, u.profile_image as author_image 
@@ -294,10 +295,55 @@ app.get('/api/community/posts', async (req, res) => {
   }
 });
 
+app.post('/api/community/upload', authenticateToken, upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  res.json({ url: `/uploads/${req.file.filename}` });
+});
+
 app.post('/api/community/posts', authenticateToken, async (req, res) => {
-  const { title, content, category } = req.body;
+  const { title, content, category, images } = req.body;
   try {
-    await runQuery(`INSERT INTO posts (author_id, title, content, category) VALUES (?, ?, ?, ?)`, [req.user.id, title, content, category]);
+    await runQuery(`INSERT INTO posts (author_id, title, content, category, images) VALUES (?, ?, ?, ?, ?)`, 
+      [req.user.id, title, content, category, JSON.stringify(images || [])]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/community/posts/:id', authenticateToken, upload.array('images', 10), async (req, res) => {
+  const { title, content, category, existingImages } = req.body;
+  try {
+    const post = await getQuery(`SELECT author_id, images FROM posts WHERE id = ?`, [req.params.id]);
+    if (!post || String(post.author_id) !== String(req.user.id)) return res.status(403).json({ error: 'Forbidden' });
+
+    let combinedImages = JSON.parse(existingImages || '[]');
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map(f => `/uploads/${f.filename}`);
+      combinedImages = [...combinedImages, ...newImages];
+    }
+
+    await runQuery(
+      `UPDATE posts SET title = ?, content = ?, category = ?, images = ? WHERE id = ?`,
+      [title, content, category, JSON.stringify(combinedImages), req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/community/posts/:id', authenticateToken, async (req, res) => {
+  try {
+    const post = await getQuery(`SELECT author_id FROM posts WHERE id = ?`, [req.params.id]);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    
+    // Check if author matches. Handle case where author_id might be null for legacy posts.
+    if (!post.author_id || String(post.author_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You are not the author of this post' });
+    }
+
+    await runQuery(`DELETE FROM posts WHERE id = ?`, [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

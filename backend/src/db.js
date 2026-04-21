@@ -55,9 +55,14 @@ export const initDb = () => {
       title TEXT NOT NULL,
       content TEXT,
       likes INTEGER DEFAULT 0,
+      images TEXT, -- JSON array of URLs
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(author_id) REFERENCES users(id)
     )`);
+
+    db.run(`ALTER TABLE posts ADD COLUMN images TEXT`, (err) => {
+      // Ignore if column exists
+    });
 
     db.run(`CREATE TABLE IF NOT EXISTS comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

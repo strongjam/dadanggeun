@@ -616,7 +616,7 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes, ch
               )}
               <div className="profile-nickname-huge">{user.profile_name || 'Anonymous'}</div>
               <div style={{ fontSize: '0.85rem', color: '#94A3B8', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-                Join Date: {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                Join Date: {user.created_at ? new Date(user.created_at).toLocaleDateString().replace(/\.$/, '') : 'N/A'}
               </div>
               <button className="profile-edit-btn" onClick={() => setIsEditing(true)}>Edit Profile</button>
             </div>
@@ -769,11 +769,14 @@ function SalesManagementPage({ user, products, bumpProduct, deleteProduct, updat
     }
   };
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="management-container">
       <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 0, background: 'white', zIndex: 100 }}>
         <ArrowLeft size={24} onClick={() => navigate(-1)} style={{ cursor: 'pointer' }} />
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '800', flex: 1 }}>My Sales</h2>
       </div>
       
       <div className="management-tab-bar" style={{ top: '57px' }}>
@@ -844,13 +847,16 @@ function WishlistManagementPage({ user, products, myProductLikes, toggleProductL
   const navigate = useNavigate();
   const likedProducts = products.filter(p => myProductLikes.includes(p.id));
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   if (!user) return <Navigate to="/login" />;
 
   return (
     <div className="management-container">
       <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 0, background: 'white', zIndex: 100 }}>
         <ArrowLeft size={24} onClick={() => navigate(-1)} style={{ cursor: 'pointer' }} />
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '800', flex: 1 }}>Wishlist</h2>
       </div>
       
       <main style={{ paddingBottom: '80px' }}>

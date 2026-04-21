@@ -203,7 +203,12 @@ function useCommunity(token) {
     if (res.ok) fetchPosts();
   };
 
-  return { posts, myLikes, fetchPosts, addPost, updatePost, deletePost, toggleLike, addComment };
+  const viewPost = async (id) => {
+    await fetch(`${API_BASE}/community/posts/${id}/view`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    fetchPosts();
+  };
+
+  return { posts, myLikes, fetchPosts, addPost, updatePost, deletePost, toggleLike, addComment, viewPost };
 }
 
 function useChat(token, user) {
@@ -1357,6 +1362,10 @@ function CommunityPage({ posts }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Heart size={16} /> {p.likes}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><MessageCircle size={16} /> {p.comments ? p.comments.length : 0}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Eye size={16} /> {p.views || 0}</div>
+                <div style={{ marginLeft: 'auto', fontSize: '0.75rem', opacity: 0.8 }}>
+                  {new Date(p.created_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+                </div>
               </div>
             </Link>
           ))}
@@ -1370,20 +1379,26 @@ function CommunityPage({ posts }) {
   );
 }
 
-function CommunityDetailPage({ posts, myLikes, toggleLike, addComment, user, deletePost }) {
+function CommunityDetailPage({ posts, myLikes, toggleLike, addComment, user, deletePost, viewPost }) {
   const { id } = useParams();
+  const postId = parseInt(id);
   const navigate = useNavigate();
   const [commentText, setCommentText] = useState('');
-  const postId = parseInt(id);
-  
-  const post = posts.find(p => p.id === postId);
-  if (!post) return <div style={{ padding: '2rem' }}>Not Found</div>;
-
   const [hasLiked, setHasLiked] = useState(myLikes.includes(postId));
   
   useEffect(() => {
+    if (postId && viewPost && user) viewPost(postId);
+  }, [postId, !!user]);
+
+  useEffect(() => {
     setHasLiked(myLikes.includes(postId));
   }, [myLikes, postId]);
+
+  const post = posts.find(p => p.id === postId);
+  if (!post) {
+    if (posts.length === 0) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading post...</div>;
+    return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Post Not Found</div>;
+  }
 
   const handleComment = (e) => {
     e.preventDefault();
@@ -2042,7 +2057,7 @@ function AdminPage({ user, token }) {
 function AppContent() {
   const { user, token, loading, login, signup, logout, updateProfile } = useAuth();
   const { products, myProductLikes, addProduct, updateProduct, deleteProduct, toggleProductLike, bumpProduct, updateProductStatus } = useProducts(token);
-  const { posts, myLikes, addPost, updatePost, deletePost, toggleLike, addComment } = useCommunity(token);
+  const { posts, myLikes, addPost, updatePost, deletePost, toggleLike, addComment, viewPost } = useCommunity(token);
   const { rooms, messages, createRoom, joinRoom, sendMessage, notification, setNotification } = useChat(token, user);
   
   usePushNotifications(token, user);
@@ -2071,7 +2086,7 @@ function AppContent() {
         <Route path="/register" element={<RegisterPage addProduct={addProduct} user={user} />} />
         <Route path="/product/:id/edit" element={<EditProductWrapper products={products} updateProduct={updateProduct} user={user} />} />
         <Route path="/community" element={<CommunityPage posts={posts} />} />
-        <Route path="/community/:id" element={<CommunityDetailPage posts={posts} myLikes={myLikes} toggleLike={toggleLike} addComment={addComment} user={user} deletePost={deletePost} />} />
+        <Route path="/community/:id" element={<CommunityDetailPage posts={posts} myLikes={myLikes} toggleLike={toggleLike} addComment={addComment} user={user} deletePost={deletePost} viewPost={viewPost} />} />
         <Route path="/community/new" element={<NewPostPage addPost={addPost} user={user} token={token} />} />
         <Route path="/community/:id/edit" element={<NewPostPage updatePost={updatePost} user={user} posts={posts} token={token} />} />
         <Route path="/login" element={<LoginPage login={login} signup={signup} />} />
@@ -2145,10 +2160,13 @@ function MyTimelinePage({ user, posts }) {
                           <img src={post.images?.[0] || post.content.match(/<img[^>]+src="([^">]+)"/)?.[1]} style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover' }} />
                         )}
                       </div>
-                    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8rem', color: '#94A3B8' }}>
+                    <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.85rem', color: '#64748B', borderTop: '1px solid #F1F5F9', paddingTop: '0.75rem' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Heart size={14} /> {post.likes || 0}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MessageCircle size={14} /> {post.comments?.length || 0}</span>
-                      <span style={{ marginLeft: 'auto', background: 'var(--primary)10', color: 'var(--primary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>{post.category}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Eye size={14} /> {post.views || 0}</span>
+                      <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                        <span style={{ display: 'block', fontSize: '0.7rem', opacity: 0.8 }}>{new Date(post.created_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+                      </div>
                     </div>
                   </div>
                 </div>

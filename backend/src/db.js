@@ -64,6 +64,10 @@ export const initDb = () => {
       // Ignore if column exists
     });
 
+    db.run(`ALTER TABLE posts ADD COLUMN views INTEGER DEFAULT 0`, (err) => {
+      // Ignore if column exists
+    });
+
     db.run(`CREATE TABLE IF NOT EXISTS comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       post_id INTEGER NOT NULL,
@@ -97,6 +101,15 @@ export const initDb = () => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (product_id, user_id),
       FOREIGN KEY(product_id) REFERENCES products(id),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS post_views (
+      post_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (post_id, user_id),
+      FOREIGN KEY(post_id) REFERENCES posts(id),
       FOREIGN KEY(user_id) REFERENCES users(id)
     )`);
 

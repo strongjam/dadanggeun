@@ -368,6 +368,22 @@ app.post('/api/community/posts/:id/like', authenticateToken, async (req, res) =>
   }
 });
 
+app.post('/api/community/posts/:id/view', authenticateToken, async (req, res) => {
+  const postId = req.params.id;
+  const userId = req.user.id;
+  try {
+    const existing = await getQuery(`SELECT * FROM post_views WHERE post_id = ? AND user_id = ?`, [postId, userId]);
+    if (!existing) {
+      await runQuery(`INSERT INTO post_views (post_id, user_id) VALUES (?, ?)`, [postId, userId]);
+      await runQuery(`UPDATE posts SET views = views + 1 WHERE id = ?`, [postId]);
+      return res.json({ success: true, counted: true });
+    }
+    res.json({ success: true, counted: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/community/posts/:id/comment', authenticateToken, async (req, res) => {
   try {
     await runQuery(`INSERT INTO comments (post_id, author_id, text) VALUES (?, ?, ?)`, [req.params.id, req.user.id, req.body.text]);

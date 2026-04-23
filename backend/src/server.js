@@ -133,6 +133,28 @@ app.put('/api/users/profile', authenticateToken, upload.single('image'), async (
   }
 });
 
+app.delete('/api/users/me', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    // Cleanup related data
+    await runQuery(`DELETE FROM products WHERE seller_id = ?`, [userId]);
+    await runQuery(`DELETE FROM posts WHERE author_id = ?`, [userId]);
+    await runQuery(`DELETE FROM comments WHERE author_id = ?`, [userId]);
+    await runQuery(`DELETE FROM product_likes WHERE user_id = ?`, [userId]);
+    await runQuery(`DELETE FROM post_likes WHERE user_id = ?`, [userId]);
+    await runQuery(`DELETE FROM chat_rooms WHERE buyer_id = ? OR seller_id = ?`, [userId, userId]);
+    await runQuery(`DELETE FROM chat_messages WHERE sender_id = ?`, [userId]);
+    await runQuery(`DELETE FROM push_subscriptions WHERE user_id = ?`, [userId]);
+    
+    // Finally delete the user
+    await runQuery(`DELETE FROM users WHERE id = ?`, [userId]);
+
+    res.json({ success: true, message: 'Account deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ======================== PRODUCTS ========================
 app.get('/api/products', async (req, res) => {
   try {

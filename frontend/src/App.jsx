@@ -59,7 +59,18 @@ function useAuth() {
     if (data.user) setUser(data.user);
   };
 
-  return { user, token, loading, login, signup, logout, updateProfile };
+  const withdraw = async () => {
+    const res = await fetch(`${API_BASE}/users/me`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Withdrawal failed');
+    }
+    logout();
+  };
+
+  return { user, token, loading, login, signup, logout, updateProfile, withdraw };
 }
 
 function useProducts(token) {
@@ -549,7 +560,7 @@ function LoginPage({ login, signup }) {
   );
 }
 
-function ProfilePage({ user, logout, updateProfile, products, myProductLikes, chatRooms = [] }) {
+function ProfilePage({ user, logout, updateProfile, withdraw, products, myProductLikes, chatRooms = [] }) {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.profile_name || '');
@@ -715,6 +726,25 @@ function ProfilePage({ user, logout, updateProfile, products, myProductLikes, ch
               <div className="profile-menu-item" onClick={() => { logout(); navigate('/'); }} style={{ color: '#E53E3E' }}>
                 <div className="profile-menu-icon" style={{ background: 'rgba(229, 62, 62, 0.1)', color: '#E53E3E' }}><LogOut size={18} /></div>
                 <span className="profile-menu-label">Logout</span>
+              </div>
+
+              <div 
+                className="profile-menu-item" 
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to delete your account? All your data will be permanently removed.')) {
+                    try {
+                      await withdraw();
+                      alert('Account deleted successfully. We hope to see you again!');
+                      navigate('/');
+                    } catch (e) {
+                      alert(e.message);
+                    }
+                  }
+                }} 
+                style={{ color: '#94A3B8', marginTop: '2.5rem', borderTop: '1px solid #F1F5F9', paddingTop: '1.5rem' }}
+              >
+                <div className="profile-menu-icon" style={{ background: 'rgba(148, 163, 184, 0.1)', color: '#94A3B8' }}><X size={18} /></div>
+                <span className="profile-menu-label">Withdraw Account</span>
               </div>
             </div>
           </div>
@@ -2055,7 +2085,7 @@ function AdminPage({ user, token }) {
 
 // ========== ROOT ==========
 function AppContent() {
-  const { user, token, loading, login, signup, logout, updateProfile } = useAuth();
+  const { user, token, loading, login, signup, logout, updateProfile, withdraw } = useAuth();
   const { products, myProductLikes, addProduct, updateProduct, deleteProduct, toggleProductLike, bumpProduct, updateProductStatus } = useProducts(token);
   const { posts, myLikes, addPost, updatePost, deletePost, toggleLike, addComment, viewPost } = useCommunity(token);
   const { rooms, messages, createRoom, joinRoom, sendMessage, notification, setNotification } = useChat(token, user);
@@ -2090,7 +2120,7 @@ function AppContent() {
         <Route path="/community/new" element={<NewPostPage addPost={addPost} user={user} token={token} />} />
         <Route path="/community/:id/edit" element={<NewPostPage updatePost={updatePost} user={user} posts={posts} token={token} />} />
         <Route path="/login" element={<LoginPage login={login} signup={signup} />} />
-        <Route path="/profile" element={<ProfilePage user={user} logout={logout} updateProfile={updateProfile} products={products} myProductLikes={myProductLikes} chatRooms={rooms} />} />
+        <Route path="/profile" element={<ProfilePage user={user} logout={logout} updateProfile={updateProfile} withdraw={withdraw} products={products} myProductLikes={myProductLikes} chatRooms={rooms} />} />
         <Route path="/profile/sales" element={<SalesManagementPage user={user} products={products} bumpProduct={bumpProduct} deleteProduct={deleteProduct} updateProductStatus={updateProductStatus} />} />
         <Route path="/profile/wishlist" element={<WishlistManagementPage user={user} products={products} myProductLikes={myProductLikes} toggleProductLike={toggleProductLike} />} />
         <Route path="/profile/timeline" element={<MyTimelinePage user={user} posts={posts} />} />

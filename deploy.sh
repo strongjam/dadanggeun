@@ -8,7 +8,7 @@ set -e
 # 스크립트가 위치한 디렉토리를 절대 경로로 획득
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-SSH_ALIAS="jamss"
+SSH_ALIAS="skrr"
 REMOTE_PATH="/var/www/dadanggeun"
 NGINX_CONF="/etc/nginx/sites-available/dadanggeun"
 NGINX_LINK="/etc/nginx/sites-enabled/dadanggeun"

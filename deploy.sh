@@ -46,6 +46,7 @@ echo "[3/5] Uploading files to server..."
 # --exclude를 통해 DB와 업로드 파일이 덮어씌워지지 않도록 보호
 rsync -avz \
   --exclude 'database.sqlite' \
+  --exclude 'backend/database.sqlite' \
   --exclude 'backend/uploads/' \
   --exclude 'backend/node_modules/' \
   --exclude 'frontend/node_modules/' \
@@ -79,6 +80,11 @@ ENDSSH
 # 5. Nginx & SSL 설정
 echo "[5/5] Finalizing Nginx & HTTPS..."
 ssh $SSH_ALIAS "sudo tee $NGINX_CONF > /dev/null <<'EOF'
+map \$http_upgrade \$connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
 server {
     listen 80;
     server_name $DOMAIN;
@@ -97,7 +103,7 @@ server {
         proxy_pass http://localhost:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
+        proxy_set_header Connection \$connection_upgrade;
         proxy_set_header Host \$host;
         proxy_cache_bypass \$http_upgrade;
     }

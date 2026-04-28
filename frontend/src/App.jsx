@@ -56,7 +56,9 @@ function useAuth() {
       method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: formData
     });
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Update failed');
     if (data.user) setUser(data.user);
+    return data;
   };
 
   const withdraw = async () => {
@@ -2093,7 +2095,14 @@ function AppContent() {
   usePushNotifications(token, user);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [chatFilter, setChatFilter] = useState('all');
+
+  useEffect(() => {
+    if (user && !user.profile_name && location.pathname !== '/set-nickname' && location.pathname !== '/login') {
+      navigate('/set-nickname', { replace: true });
+    }
+  }, [user, location.pathname, navigate]);
 
   if (loading) return <div>Loading...</div>;
 
@@ -2120,6 +2129,7 @@ function AppContent() {
         <Route path="/community/new" element={<NewPostPage addPost={addPost} user={user} token={token} />} />
         <Route path="/community/:id/edit" element={<NewPostPage updatePost={updatePost} user={user} posts={posts} token={token} />} />
         <Route path="/login" element={<LoginPage login={login} signup={signup} />} />
+        <Route path="/set-nickname" element={user ? <SetNicknamePage user={user} updateProfile={updateProfile} /> : <Navigate to="/login" />} />
         <Route path="/profile" element={<ProfilePage user={user} logout={logout} updateProfile={updateProfile} withdraw={withdraw} products={products} myProductLikes={myProductLikes} chatRooms={rooms} />} />
         <Route path="/profile/sales" element={<SalesManagementPage user={user} products={products} bumpProduct={bumpProduct} deleteProduct={deleteProduct} updateProductStatus={updateProductStatus} />} />
         <Route path="/profile/wishlist" element={<WishlistManagementPage user={user} products={products} myProductLikes={myProductLikes} toggleProductLike={toggleProductLike} />} />
@@ -2222,6 +2232,74 @@ function MyTimelinePage({ user, posts }) {
           box-shadow: 0 10px 25px rgba(0,0,0,0.05);
         }
       `}} />
+    </>
+  );
+}
+
+function SetNicknamePage({ user, updateProfile }) {
+  const navigate = useNavigate();
+  const [nickname, setNickname] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // If user already has a nickname, redirect to home
+  useEffect(() => {
+    if (user && user.profile_name) {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!nickname.trim()) return;
+    
+    setError('');
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('profile_name', nickname.trim());
+      formData.append('existing_image', user.profile_image || '');
+      
+      await updateProfile(formData);
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError(err.message || 'Failed to update nickname');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <Header title="Set Nickname" />
+      <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div className="glass-card" style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+          <Sparkles size={48} color="var(--primary)" style={{ marginBottom: '1.5rem', opacity: 0.8 }} />
+          <h2 style={{ marginBottom: '0.5rem' }}>One Last Step!</h2>
+          <p style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: '2rem' }}>Please choose a unique nickname to start your journey.</p>
+          
+          {error && <div style={{ background: '#FFF1F2', color: '#E11D48', padding: '0.75rem', borderRadius: '10px', marginBottom: '1.5rem', fontSize: '0.85rem', fontWeight: '500' }}>{error}</div>}
+          
+          <form onSubmit={handleSubmit}>
+            <div className="form-group" style={{ textAlign: 'left' }}>
+              <label className="form-label">Nickname</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                value={nickname} 
+                onChange={e => setNickname(e.target.value)} 
+                placeholder="Enter nickname"
+                required 
+                minLength={2}
+                maxLength={20}
+              />
+            </div>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? "Saving..." : "Start Dadanggeun"}
+            </button>
+          </form>
+        </div>
+      </main>
     </>
   );
 }

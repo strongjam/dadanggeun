@@ -92,17 +92,26 @@ app.post('/api/auth/signup', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   const { login_id, password } = req.body;
+  console.log(`[LOGIN ATTEMPT] id: ${login_id}`);
   try {
     const user = await getQuery(`SELECT * FROM users WHERE login_id = ?`, [login_id]);
-    if (!user) return res.status(400).json({ error: 'Invalid login' });
+    if (!user) {
+      console.log(`[LOGIN FAILED] User not found: ${login_id}`);
+      return res.status(400).json({ error: 'Invalid login' });
+    }
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(400).json({ error: 'Invalid login' });
+    if (!valid) {
+      console.log(`[LOGIN FAILED] Password mismatch for: ${login_id}`);
+      return res.status(400).json({ error: 'Invalid login' });
+    }
 
     const token = jwt.sign({ id: user.id, login_id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     delete user.password_hash;
+    console.log(`[LOGIN SUCCESS] user: ${login_id}`);
     res.json({ token, user });
   } catch (err) {
+    console.error(`[LOGIN ERROR] ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });
@@ -125,8 +134,14 @@ app.put('/api/users/profile', authenticateToken, upload.single('image'), async (
   }
 
   try {
+    // Check if nickname is already taken by someone else
+    if (profile_name) {
+      const existing = await getQuery(`SELECT id FROM users WHERE profile_name = ? AND id != ?`, [profile_name, req.user.id]);
+      if (existing) return res.status(400).json({ error: 'This nickname is already taken.' });
+    }
+
     await runQuery(`UPDATE users SET profile_name = ?, profile_image = ? WHERE id = ?`, [profile_name, image_url, req.user.id]);
-    const updated = await getQuery(`SELECT id, login_id, profile_name, profile_image FROM users WHERE id = ?`, [req.user.id]);
+    const updated = await getQuery(`SELECT id, login_id, profile_name, profile_image, role, created_at FROM users WHERE id = ?`, [req.user.id]);
     res.json({ user: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
